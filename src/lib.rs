@@ -1,2 +1,4 @@
 mod report;
-pub use report::{RunInfo, SubtestResult, SubtestStatus, TestResult, TestStatus, WptReport};
+pub use report::{
+    RunInfo, SubtestResult, SubtestStatus, TestResult, TestScore, TestStatus, WptReport, WptScores,
+};

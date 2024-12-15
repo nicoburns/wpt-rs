@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -6,6 +8,24 @@ pub struct WptReport {
     time_end: u64,
     run_info: RunInfo,
     results: Vec<TestResult>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct WptScores {
+  run_info: RunInfo,
+  test_scores: BTreeMap<String, TestScore>,
+}
+
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TestScore {
+  score: u64,
+  subtests: BTreeMap<String, SubtestScore>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SubtestScore {
+  score: u64,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -38,10 +58,15 @@ pub struct RunInfo {
     python_version: i64,
 
     // OS Flags
+    #[serde(default)]
     apple_catalina: bool,
+    #[serde(default)]
     apple_silicon: bool,
+    #[serde(default)]
     win10_2004: bool,
+    #[serde(default)]
     win10_2009: bool,
+    #[serde(default)]
     win11_2009: bool,
 }
 
@@ -55,6 +80,7 @@ pub struct TestResult {
     subsuite: String,
     subtests: Vec<SubtestResult>,
 }
+
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
