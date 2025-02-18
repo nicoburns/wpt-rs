@@ -1,12 +1,14 @@
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use serde_json;
 // use serde_jsonlines::{json_lines, JsonLinesReader};
 
+use std::collections::BTreeMap;
 use std::fs::{read_dir, File};
-use std::hint::black_box;
 use std::io::{BufReader, Read};
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::{env, time::Instant};
-use wptreport::{score_wpt_report, WptScores};
+use wptreport::{score_wpt_report, AreaScores, WptScores};
 use xz2::read::XzDecoder;
 
 fn as_percent(amount: u32, out_of: u32) -> f32 {
@@ -21,7 +23,21 @@ fn main() {
     let start = Instant::now();
 
     if in_path_buf.is_file() {
-        score_report(&in_path);
+        let result = score_report(&in_path);
+        for (area, scores) in result.scores_by_area {
+            let tests = scores.tests;
+            let subtests = scores.subtests;
+            let percentage = as_percent(scores.tests.pass, scores.tests.total);
+            println!(
+                "{area}: {percentage:.2}% ({}/{} tests) ({}/{} subtests)",
+                tests.pass, tests.total, subtests.pass, subtests.total
+            );
+        }
+
+        println!(
+            "Processed {in_path} in {}ms (read in {}ms; Scored in {}ms)",
+            result.total_time, result.read_time, result.score_time
+        );
     } else if in_path_buf.is_dir() {
         let dir_entries = read_dir(&in_path_buf).unwrap();
 
@@ -36,20 +52,35 @@ fn main() {
             .collect();
         file_paths.sort();
 
-        for file_path in file_paths {
-            score_report(&file_path);
-        }
+        let count = file_paths.len();
+        let i = AtomicU64::new(0);
+
+        file_paths.par_iter().for_each(|file_path| {
+            let result = score_report(&file_path);
+            let file_name = &file_path.rsplit_once('/').unwrap().1;
+            let i = i.fetch_add(1, Ordering::SeqCst);
+            println!(
+                "[{i}/{count}] Processed {file_name} in {}ms (read in {}ms; Scored in {}ms)",
+                result.total_time, result.read_time, result.score_time
+            );
+        });
+
+        let grand_total_time = start.elapsed().as_secs();
+        println!("====================");
+        println!("Processed all files in {grand_total_time}s");
     } else {
         panic!("{in_path} is not a file or directory");
     }
-
-    let grand_total_time = start.elapsed().as_secs();
-    println!("====================");
-    println!("Processed all files in {grand_total_time}");
 }
 
-fn score_report(file_path: &str) {
-    println!("Processing {file_path}");
+pub struct ScoreResult {
+    scores_by_area: BTreeMap<String, AreaScores>,
+    read_time: u128,
+    score_time: u128,
+    total_time: u128,
+}
+
+pub fn score_report(file_path: &str) -> ScoreResult {
     let read_start = Instant::now();
 
     let file = File::open(&file_path).unwrap();
@@ -88,16 +119,10 @@ fn score_report(file_path: &str) {
     let score_elapsed = score_start.elapsed().as_millis();
     let total_elapsed = read_start.elapsed().as_millis();
 
-    black_box(&scores_by_area);
-    // for (area, scores) in scores_by_area {
-    //     let tests = scores.tests;
-    //     let subtests = scores.subtests;
-    //     let percentage = as_percent(scores.tests.pass, scores.tests.total);
-    //     println!(
-    //         "{area}: {percentage:.2}% ({}/{} tests) ({}/{} subtests)",
-    //         tests.pass, tests.total, subtests.pass, subtests.total
-    //     );
-    // }
-
-    println!("Done in {total_elapsed}ms (read in {read_elapsed}ms; Scored in {score_elapsed}ms).");
+    ScoreResult {
+        scores_by_area,
+        read_time: read_elapsed,
+        score_time: score_elapsed,
+        total_time: total_elapsed,
+    }
 }
