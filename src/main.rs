@@ -1,15 +1,16 @@
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
-use serde_json;
-// use serde_jsonlines::{json_lines, JsonLinesReader};
-
 use std::collections::BTreeMap;
 use std::fs::{read_dir, File};
 use std::io::{BufReader, Read};
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::{env, time::Instant};
-use wptreport::{score_wpt_report, AreaScores, WptScores};
+
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use serde_json;
 use xz2::read::XzDecoder;
+// use serde_jsonlines::{json_lines, JsonLinesReader};
+
+use wptreport::{score_wpt_report, AreaScores, WptScores};
 
 fn as_percent(amount: u32, out_of: u32) -> f32 {
     (amount as f32 / out_of as f32) * 100.0

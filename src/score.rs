@@ -89,7 +89,7 @@ where
         // Compute scores for the test
         let counts = test.subtest_counts();
         let passes = counts.all_passing();
-        let pass_fraction = counts.pass_fraction();
+        // let pass_fraction = counts.pass_fraction();
 
         // Update the scores for each area that the test belongs to
         for area in area_iter(test.name()) {
