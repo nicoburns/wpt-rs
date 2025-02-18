@@ -4,28 +4,27 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WptReport {
-    time_start: u64,
-    time_end: u64,
-    run_info: RunInfo,
-    results: Vec<TestResult>,
+    pub time_start: u64,
+    pub time_end: u64,
+    pub run_info: RunInfo,
+    pub results: Vec<TestResult>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WptScores {
-  run_info: RunInfo,
-  test_scores: BTreeMap<String, TestScore>,
+    pub run_info: RunInfo,
+    pub test_scores: BTreeMap<String, TestScore>,
 }
-
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TestScore {
-  score: u64,
-  subtests: BTreeMap<String, SubtestScore>,
+    pub score: u64,
+    pub subtests: BTreeMap<String, SubtestScore>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SubtestScore {
-  score: u64,
+    pub score: u32,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -72,17 +71,16 @@ pub struct RunInfo {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TestResult {
-    test: String,
-    status: TestStatus,
-    duration: i64,
-    known_intermittent: Vec<String>,
-    message: Option<String>,
-    subsuite: String,
-    subtests: Vec<SubtestResult>,
+    pub test: String,
+    pub status: TestStatus,
+    pub duration: i64,
+    pub known_intermittent: Vec<String>,
+    pub message: Option<String>,
+    pub subsuite: String,
+    pub subtests: Vec<SubtestResult>,
 }
 
-
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum TestStatus {
     Pass,
@@ -98,13 +96,13 @@ pub enum TestStatus {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SubtestResult {
-    name: String,
-    status: SubtestStatus,
-    known_intermittent: Vec<String>,
-    message: Option<String>,
+    pub name: String,
+    pub status: SubtestStatus,
+    pub known_intermittent: Vec<String>,
+    pub message: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum SubtestStatus {
     Pass,
