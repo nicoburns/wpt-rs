@@ -9,11 +9,11 @@ pub struct SubtestCounts {
 }
 
 impl SubtestCounts {
-    fn all_passing(self) -> bool {
+    pub fn all_passing(self) -> bool {
         self.pass == self.total
     }
 
-    fn pass_fraction(self) -> f64 {
+    pub fn pass_fraction(self) -> f64 {
         if self.total == 0 {
             0.0
         } else {
