@@ -1,82 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::{SubtestStatus, TestResult, TestScore, TestStatus};
-
-#[derive(Debug, Copy, Clone, Default)]
-pub struct SubtestCounts {
-    pub pass: u32,
-    pub total: u32,
-}
-
-impl SubtestCounts {
-    pub fn all_passing(self) -> bool {
-        self.pass == self.total
-    }
-
-    pub fn pass_fraction(self) -> f64 {
-        if self.total == 0 {
-            0.0
-        } else {
-            (self.pass as f64) / (self.total as f64)
-        }
-    }
-}
-
-#[derive(Debug, Copy, Clone, Default)]
-pub struct AreaScores {
-    pub tests: SubtestCounts,
-    pub subtests: SubtestCounts,
-}
-
-pub trait TestResultIter {
-    fn name(&self) -> &str;
-    fn subtest_counts(&self) -> SubtestCounts;
-}
-
-impl TestResultIter for &TestResult {
-    fn name(&self) -> &str {
-        &self.test
-    }
-
-    fn subtest_counts(&self) -> SubtestCounts {
-        let total = self.subtests.len() as u32;
-
-        if total == 0 {
-            SubtestCounts {
-                total: 1,
-                pass: (self.status == TestStatus::Pass) as u32,
-            }
-        } else {
-            let pass = self.subtests.iter().fold(0, |mut pass_count, subtest| {
-                pass_count += (subtest.status == SubtestStatus::Pass) as u32;
-                pass_count
-            });
-            SubtestCounts { pass, total }
-        }
-    }
-}
-
-impl TestResultIter for (&String, &TestScore) {
-    fn name(&self) -> &str {
-        self.0
-    }
-
-    fn subtest_counts(&self) -> SubtestCounts {
-        let total = self.1.subtests.len() as u32;
-        if total == 0 {
-            SubtestCounts {
-                total: 1,
-                pass: self.1.score as u32,
-            }
-        } else {
-            let pass = self.1.subtests.values().fold(0, |mut pass_count, subtest| {
-                pass_count += subtest.score;
-                pass_count
-            });
-            SubtestCounts { pass, total }
-        }
-    }
-}
+use crate::{AreaScores, SubtestCounts, TestResultIter};
 
 pub fn score_wpt_report<Test, Report>(report: Report) -> BTreeMap<String, AreaScores>
 where
@@ -99,6 +23,7 @@ where
                 test_scores.tests.total += 1;
                 test_scores.subtests.pass += counts.pass;
                 test_scores.subtests.total += counts.total;
+                test_scores.interop_score_sum += counts.passes_per_1000() as u64;
             } else {
                 let test_scores = AreaScores {
                     tests: SubtestCounts {
@@ -106,6 +31,9 @@ where
                         total: 1,
                     },
                     subtests: counts,
+                    // The sum of the interop scores for each individual test, but not
+                    // divided by the total number of tests
+                    interop_score_sum: counts.passes_per_1000() as u64,
                 };
                 results.insert(area.to_string(), test_scores);
             };

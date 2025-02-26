@@ -10,7 +10,8 @@ use serde_json;
 use xz2::read::XzDecoder;
 // use serde_jsonlines::{json_lines, JsonLinesReader};
 
-use wptreport::{score_wpt_report, AreaScores, WptScores};
+use wptreport::reports::servo_test_scores::WptScores;
+use wptreport::{score_wpt_report, AreaScores};
 
 fn as_percent(amount: u32, out_of: u32) -> f32 {
     (amount as f32 / out_of as f32) * 100.0
