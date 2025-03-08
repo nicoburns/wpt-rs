@@ -1,7 +1,7 @@
 //! The cut-down version of the "wptreport" format used by Servo to store scores
 //! in the internal-wpt-dashboard repository
 
-use crate::{SubtestCounts, TestResultIter};
+use crate::{ScorableReport, SubtestCounts, TestResultIter};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
@@ -22,6 +22,16 @@ pub struct TestScore {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SubtestScore {
     pub score: u32,
+}
+
+#[rustfmt::skip]
+impl ScorableReport for WptScores {
+    type TestResultIter<'a> = (&'a String, &'a TestScore) where Self: 'a;
+    type TestIter<'a> = std::collections::btree_map::Iter<'a, String, TestScore> where Self: 'a;
+
+    fn results(&self) -> Self::TestIter<'_> {
+        self.test_scores.iter()
+    }
 }
 
 impl TestResultIter for (&String, &TestScore) {

@@ -1,6 +1,6 @@
 //! The standard "wptreport" format produced by the official wptrunner as well
 //! as other wpt test runners.
-use crate::SubtestCounts;
+use crate::{ScorableReport, SubtestCounts, TestResultIter};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
@@ -101,7 +101,17 @@ pub struct SubtestResult {
     pub message: Option<String>,
 }
 
-impl crate::TestResultIter for &TestResult {
+#[rustfmt::skip]
+impl ScorableReport for WptReport {
+    type TestResultIter<'a> = &'a TestResult where Self: 'a;
+    type TestIter<'a> = core::slice::Iter<'a, TestResult> where Self: 'a;
+
+    fn results(&self) -> Self::TestIter<'_> {
+        self.results.iter()
+    }
+}
+
+impl TestResultIter for &TestResult {
     fn name(&self) -> &str {
         &self.test
     }
