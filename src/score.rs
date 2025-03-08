@@ -1,15 +1,14 @@
 use std::collections::BTreeMap;
 
-use crate::{AreaScores, SubtestCounts, TestResultIter};
+use crate::{AreaScores, ScorableReport, SubtestCounts, TestResultIter};
 
-pub fn score_wpt_report<Test, Report>(report: Report) -> BTreeMap<String, AreaScores>
+pub fn score_wpt_report<Report>(report: &Report) -> BTreeMap<String, AreaScores>
 where
-    Test: TestResultIter,
-    Report: Iterator<Item = Test>,
+    Report: ScorableReport,
 {
     let mut results = BTreeMap::<String, AreaScores>::new();
 
-    for test in report {
+    for test in report.results() {
         // Compute scores for the test
         let counts = test.subtest_counts();
         let passes = counts.all_passing();

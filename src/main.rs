@@ -6,12 +6,13 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::{env, time::Instant};
 
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use serde::de::DeserializeOwned;
 use serde_json;
 use xz2::read::XzDecoder;
 // use serde_jsonlines::{json_lines, JsonLinesReader};
 
 use wptreport::reports::servo_test_scores::WptScores;
-use wptreport::{score_wpt_report, AreaScores};
+use wptreport::{score_wpt_report, AreaScores, ScorableReport};
 
 // Use jemalloc as the allocator
 #[cfg(not(target_env = "msvc"))]
@@ -30,7 +31,7 @@ fn main() {
     let start = Instant::now();
 
     if in_path_buf.is_file() {
-        let result = score_report(&in_path);
+        let result = score_report::<WptScores>(&in_path);
         for (area, scores) in result.scores_by_area {
             let tests = scores.tests;
             let subtests = scores.subtests;
@@ -63,7 +64,7 @@ fn main() {
         let i = AtomicU64::new(0);
 
         file_paths.par_iter().for_each(|file_path| {
-            let result = score_report(&file_path);
+            let result = score_report::<WptScores>(&file_path);
             let file_name = &file_path.rsplit_once('/').unwrap().1;
             let i = i.fetch_add(1, Ordering::SeqCst);
             println!(
@@ -87,12 +88,10 @@ pub struct ScoreResult {
     total_time: u128,
 }
 
-pub fn score_report(file_path: &str) -> ScoreResult {
-    let read_start = Instant::now();
-
+pub fn read_report_file<T: DeserializeOwned>(file_path: &str) -> T {
     let file = File::open(&file_path).unwrap();
 
-    let report: WptScores = if file_path.ends_with("xz") {
+    let report: T = if file_path.ends_with("xz") {
         let mut decompressed = XzDecoder::new(file);
         let mut s = String::new();
         decompressed.read_to_string(&mut s).unwrap();
@@ -119,10 +118,19 @@ pub fn score_report(file_path: &str) -> ScoreResult {
         //     .map(|result| result.unwrap())
         //     .collect()
     };
+
+    report
+}
+
+pub fn score_report<T: DeserializeOwned + ScorableReport>(file_path: &str) -> ScoreResult {
+    let read_start = Instant::now();
+
+    let report: T = read_report_file(file_path);
+
     let read_elapsed = read_start.elapsed().as_millis();
 
     let score_start = Instant::now();
-    let scores_by_area = score_wpt_report(report.test_scores.iter());
+    let scores_by_area = score_wpt_report(&report);
     let score_elapsed = score_start.elapsed().as_millis();
     let total_elapsed = read_start.elapsed().as_millis();
 

@@ -5,6 +5,14 @@ pub mod summarize;
 pub use reports::{score_summary, servo_test_scores, wpt_report};
 pub use score::score_wpt_report;
 
+#[rustfmt::skip]
+pub trait ScorableReport {
+    type TestResultIter<'b>: TestResultIter + 'b where Self: 'b;
+    type TestIter<'a>: Iterator<Item = Self::TestResultIter<'a>> where Self: 'a;
+
+    fn results(&self) -> Self::TestIter<'_>;
+}
+
 pub trait TestResultIter {
     fn name(&self) -> &str;
     fn subtest_counts(&self) -> SubtestCounts;
