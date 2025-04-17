@@ -71,15 +71,15 @@ pub struct WptRunInfo {
 
     // OS Flags
     #[serde(default)]
-    apple_catalina: bool,
+    pub apple_catalina: bool,
     #[serde(default)]
-    apple_silicon: bool,
+    pub apple_silicon: bool,
     #[serde(default)]
-    win10_2004: bool,
+    pub win10_2004: bool,
     #[serde(default)]
-    win10_2009: bool,
+    pub win10_2009: bool,
     #[serde(default)]
-    win11_2009: bool,
+    pub win11_2009: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
