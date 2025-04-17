@@ -5,11 +5,6 @@ pub mod summarize;
 pub use reports::{score_summary, servo_test_scores, wpt_report};
 pub use score::score_wpt_report;
 
-// Use jemalloc as the allocator
-#[cfg(not(target_env = "msvc"))]
-#[global_allocator]
-static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
-
 pub trait TestResultIter {
     fn name(&self) -> &str;
     fn subtest_counts(&self) -> SubtestCounts;

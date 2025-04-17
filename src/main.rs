@@ -13,6 +13,11 @@ use xz2::read::XzDecoder;
 use wptreport::reports::servo_test_scores::WptScores;
 use wptreport::{score_wpt_report, AreaScores};
 
+// Use jemalloc as the allocator
+#[cfg(not(target_env = "msvc"))]
+#[global_allocator]
+static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
+
 fn as_percent(amount: u32, out_of: u32) -> f32 {
     (amount as f32 / out_of as f32) * 100.0
 }
