@@ -87,9 +87,21 @@ pub struct TestResult {
     pub test: String,
     pub status: TestStatus,
     pub duration: i64,
-    pub known_intermittent: Vec<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub message: Option<String>,
+
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(default)]
+    pub known_intermittent: Vec<String>,
+
+    #[serde(skip_serializing_if = "String::is_empty")]
+    #[serde(default)]
     pub subsuite: String,
+
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(default)]
     pub subtests: Vec<SubtestResult>,
 }
 
@@ -97,8 +109,14 @@ pub struct TestResult {
 pub struct SubtestResult {
     pub name: String,
     pub status: SubtestStatus,
-    pub known_intermittent: Vec<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub message: Option<String>,
+
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(default)]
+    pub known_intermittent: Vec<String>,
 }
 
 #[rustfmt::skip]
