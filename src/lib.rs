@@ -1,3 +1,4 @@
+pub mod aggregate;
 pub mod reports;
 pub mod score;
 pub mod summarize;
@@ -36,7 +37,7 @@ impl AreaScores {
     }
 }
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Copy, Clone, Default, PartialEq, Eq)]
 pub struct SubtestCounts {
     pub pass: u32,
     pub total: u32,
