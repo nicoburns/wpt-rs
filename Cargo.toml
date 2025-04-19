@@ -1,6 +1,6 @@
 [package]
 name = "wptreport"
-version = "0.0.3"
+version = "0.0.4"
 description = "Tools for working with WPT reports"
 license = "MIT OR Apache-2.0"
 edition = "2021"
