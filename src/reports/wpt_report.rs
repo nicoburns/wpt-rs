@@ -38,7 +38,7 @@ pub struct WptReport {
     pub results: Vec<TestResult>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct WptRunInfo {
     /// The browser engine tested (e.g. "servo")
     pub product: String,

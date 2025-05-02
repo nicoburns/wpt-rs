@@ -1,4 +1,5 @@
 pub mod aggregate;
+pub mod merge;
 pub mod reports;
 pub mod score;
 pub mod summarize;
