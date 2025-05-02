@@ -11,14 +11,14 @@ pub struct FocusArea {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RunSummary {
-    /// The date the run occured inYYYY-MM-DD format
+    /// The date the run occured in YYYY-MM-DD format
     pub date: String,
     /// The version of the WPT test suite that was run
     pub wpt_revision: String,
     /// The version of the browser that was tested
     pub product_version: String,
     /// Scores are a percentage expressed a number between 0 and 1000
-    pub scores: Vec<u16>,
+    pub scores: Vec<RunScores>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
@@ -44,6 +44,8 @@ impl From<AreaScores> for RunScores {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ScoreSummaryReport {
-    pub focus_areas: Vec<FocusArea>,
+    // TODO: remove area_keys
+    pub area_keys: Vec<usize>,
+    pub focus_areas: Vec<String>,
     pub scores: Vec<RunSummary>,
 }
