@@ -15,7 +15,7 @@ pub struct WptScores {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TestScore {
-    pub score: u64,
+    pub score: u32,
     pub subtests: BTreeMap<String, SubtestScore>,
 }
 
@@ -52,6 +52,71 @@ impl TestResultIter for (&String, &TestScore) {
                 pass_count
             });
             SubtestCounts { pass, total }
+        }
+    }
+}
+
+mod score {
+    use super::{SubtestCounts, TestScore, WptScores};
+    use crate::AreaScores;
+
+    impl TestScore {
+        /// Scores a test against a reference test
+        /// This means that we only count subtests that were run in the reference test
+        pub fn score_against(&self, reference: &TestScore) -> SubtestCounts {
+            if reference.subtests.is_empty() {
+                SubtestCounts {
+                    pass: self.score,
+                    total: 1,
+                }
+            } else {
+                SubtestCounts {
+                    pass: reference
+                        .subtests
+                        .keys()
+                        .map(|subtest_name| {
+                            self.subtests
+                                .get(subtest_name)
+                                .map(|subtest| subtest.score)
+                                .unwrap_or(0)
+                        })
+                        .sum::<u32>(),
+                    total: reference.subtests.len() as u32,
+                }
+            }
+        }
+    }
+
+    impl WptScores {
+        /// Scores a test run against a reference test run
+        /// This means that we only count tests and subtests that were run in the reference run
+        pub fn score_against(&self, reference: &WptScores) -> AreaScores {
+            let mut scores = AreaScores::default();
+
+            for (test_name, reference_test) in reference.test_scores.iter() {
+                // Update totals
+                scores.tests.total += 1;
+                scores.subtests.total = reference_test.subtests.len() as u32;
+
+                // Get test
+                let Some(test) = self.test_scores.get(test_name) else {
+                    continue;
+                };
+
+                // Update passes
+                let subtest_counts = test.score_against(reference_test);
+                scores.subtests.pass += subtest_counts.pass;
+                scores.interop_score_sum = subtest_counts.passes_per_1000().into();
+                if subtest_counts.pass == subtest_counts.total && subtest_counts.total != 0 {
+                    scores.tests.total += 1;
+                }
+            }
+
+            scores
+        }
+
+        pub fn score(&self) -> AreaScores {
+            self.score_against(self)
         }
     }
 }

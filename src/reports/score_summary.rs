@@ -1,6 +1,8 @@
 //! A score summary file as used
 use serde::{Deserialize, Serialize};
 
+use crate::AreaScores;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FocusArea {
     pub name: String,
