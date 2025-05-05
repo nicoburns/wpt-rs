@@ -1,0 +1,27 @@
+[package]
+name = "wpt"
+description = "CLI for working with WPT data"
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+
+[features]
+default = ["zstd", "xz2", "jemalloc"]
+jemalloc = ["dep:tikv-jemallocator"]
+zstd = ["dep:zstd"]
+xz2 = ["dep:xz2"]
+
+[dependencies]
+# Workspace dependecies
+wptreport = { workspace = true }
+
+# 3rd-party dependencies
+rayon = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+serde-jsonlines = { workspace = true }
+zstd = { workspace = true, optional = true }
+xz2 = { workspace = true, optional = true }
+
+[target.'cfg(not(target_env = "msvc"))'.dependencies]
+tikv-jemallocator = { workspace = true, optional = true }

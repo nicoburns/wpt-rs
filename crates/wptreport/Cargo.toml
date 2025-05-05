@@ -1,0 +1,11 @@
+[package]
+name = "wptreport"
+description = "Tools for working with WPT reports"
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+
+[dependencies]
+rayon = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }

@@ -1,29 +1,23 @@
-[package]
-name = "wptreport"
-version = "0.0.5"
-description = "Tools for working with WPT reports"
-license = "MIT OR Apache-2.0"
-edition = "2021"
-default-run = "wpt"
+[workspace]
+members = [
+  "crates/cli",
+  "crates/wptreport",
+]
+resolver = "2"
 
-[dependencies]
+[workspace.package]
+version = "0.0.5"
+license = "MIT OR Apache-2.0"
+rust-version = "1.81"
+edition = "2021"
+
+[workspace.dependencies]
+wptreport = { path = "./crates/wptreport", version = "0.0.5" }
 rayon = "1.10.0"
-serde = { version = "1", features = ["derive"] }
+serde = "1"
 serde_json = "1"
 serde-jsonlines = "0.6"
-zstd = { version = "0.13", optional = true }
-xz2 = { version = "0.1", optional = true }
+zstd = "0.13"
+xz2 = "0.1"
+tikv-jemallocator = "0.6"
 
-[target.'cfg(not(target_env = "msvc"))'.dependencies]
-tikv-jemallocator = { version = "0.6", optional = true }
-
-[features]
-default = ["zstd", "xz2", "jemalloc"]
-jemalloc = ["dep:tikv-jemallocator"]
-zstd = ["dep:zstd"]
-xz2 = ["dep:xz2"]
-
-[[bin]]
-name = "wpt"
-path = "src/main.rs"
-required-features = ["jemalloc", "zstd", "xz2"]
