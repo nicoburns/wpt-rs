@@ -39,6 +39,7 @@ pub struct RunSummary {
 pub struct RunScores {
     // pub interop_score: u16,
     pub total_tests: u32,
+    #[serde(serialize_with = "as_int_if_int")]
     pub total_score: f64, // Servo score
     // pub total_tests_passed: u32,
     pub total_subtests: u32,
@@ -55,5 +56,17 @@ impl From<AreaScores> for RunScores {
             total_subtests: scores.subtests.total,
             total_subtests_passed: scores.subtests.pass,
         }
+    }
+}
+
+/// Remove redundant decimal places
+fn as_int_if_int<S>(x: &f64, s: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    if x.fract() == 0.0 {
+        s.serialize_u64(*x as u64)
+    } else {
+        s.serialize_f64(*x)
     }
 }
