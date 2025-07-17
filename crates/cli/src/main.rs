@@ -76,7 +76,7 @@ fn main() {
     let focus_areas = get_focus_areas();
 
     if in_path_buf.is_file() {
-        let result = score_report::<WptScores>(&in_path);
+        let result = score_report::<WptScores>(&in_path).unwrap();
         for (area, scores) in result.scores_by_area {
             let tests = scores.tests;
             let subtests = scores.subtests;
@@ -106,12 +106,16 @@ fn main() {
         file_paths.sort();
 
         let count = file_paths.len();
-        let i = AtomicU64::new(0);
+        if count == 0 {
+            println!("No files found");
+            return;
+        }
 
+        let i = AtomicU64::new(0);
         let scores: Vec<_> = file_paths
             .par_iter()
-            .map(|file_path| {
-                let result = score_report::<WptScores>(file_path);
+            .filter_map(|file_path| {
+                let result = score_report::<WptScores>(file_path)?;
                 let file_name = &file_path.rsplit_once('/').unwrap().1;
                 let i = i.fetch_add(1, Ordering::SeqCst);
                 println!(
@@ -120,11 +124,11 @@ fn main() {
                 );
 
                 let date = file_name[0..10].to_string();
-                RunInfoWithScores {
+                Some(RunInfoWithScores {
                     date,
                     info: result.run_info,
                     scores: result.scores_by_area,
-                }
+                })
             })
             .collect();
 
@@ -169,11 +173,11 @@ pub fn read_maybe_compressed_file(file_path: &str) -> String {
 
 pub fn score_report<T: DeserializeOwned + ScorableReport + HasRunInfo>(
     file_path: &str,
-) -> ScoreResult {
+) -> Option<ScoreResult> {
     let read_start = Instant::now();
 
     let report_str = read_maybe_compressed_file(file_path);
-    let report: T = serde_json::from_str(&report_str).unwrap();
+    let report: T = serde_json::from_str(&report_str).ok()?;
 
     let read_elapsed = read_start.elapsed().as_millis();
 
@@ -182,11 +186,11 @@ pub fn score_report<T: DeserializeOwned + ScorableReport + HasRunInfo>(
     let score_elapsed = score_start.elapsed().as_millis();
     let total_elapsed = read_start.elapsed().as_millis();
 
-    ScoreResult {
+    Some(ScoreResult {
         scores_by_area,
         run_info: report.run_info().clone(),
         read_time: read_elapsed,
         score_time: score_elapsed,
         total_time: total_elapsed,
-    }
+    })
 }
