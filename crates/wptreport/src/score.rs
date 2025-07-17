@@ -47,7 +47,7 @@ fn area_iter(test_path: &str) -> impl Iterator<Item = &str> {
         .rsplit_once('/')
         .expect("Test name will contain at least one '/' character")
         .0
-        .trim_matches('/');
+        .trim_end_matches('/');
 
     stripped_path
         .match_indices('/')

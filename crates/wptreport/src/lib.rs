@@ -4,6 +4,9 @@ pub mod reports;
 pub mod score;
 pub mod summarize;
 
+use std::{iter::Sum, ops::Add};
+
+use reports::wpt_report::WptRunInfo;
 pub use reports::{score_summary, servo_test_scores, wpt_report};
 pub use score::score_wpt_report;
 
@@ -13,6 +16,10 @@ pub trait ScorableReport {
     type TestIter<'a>: Iterator<Item = Self::TestResultIter<'a>> where Self: 'a;
 
     fn results(&self) -> Self::TestIter<'_>;
+}
+
+pub trait HasRunInfo {
+    fn run_info(&self) -> &WptRunInfo;
 }
 
 pub trait TestResultIter {
@@ -29,6 +36,17 @@ pub struct AreaScores {
     pub interop_score_sum: u64,
 }
 
+impl Add for AreaScores {
+    type Output = AreaScores;
+    fn add(self, rhs: Self) -> Self::Output {
+        Self {
+            tests: self.tests + rhs.tests,
+            subtests: self.subtests + rhs.subtests,
+            interop_score_sum: self.interop_score_sum + rhs.interop_score_sum,
+        }
+    }
+}
+
 impl AreaScores {
     /// The WPT score percentage using the "interop" scoring methodology
     /// The value is represented as a number between 0 and 1000
@@ -42,6 +60,25 @@ impl AreaScores {
 pub struct SubtestCounts {
     pub pass: u32,
     pub total: u32,
+}
+
+impl Add for SubtestCounts {
+    type Output = SubtestCounts;
+    fn add(self, rhs: Self) -> Self::Output {
+        Self {
+            pass: self.pass + rhs.pass,
+            total: self.total + rhs.total,
+        }
+    }
+}
+impl Sum for AreaScores {
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+        let mut acc = Self::default();
+        for scores in iter {
+            acc = acc + scores;
+        }
+        acc
+    }
 }
 
 impl SubtestCounts {

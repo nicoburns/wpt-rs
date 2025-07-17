@@ -1,6 +1,6 @@
 //! The standard "wptreport" format produced by the official wptrunner as well
 //! as other wpt test runners.
-use crate::{ScorableReport, SubtestCounts, TestResultIter};
+use crate::{HasRunInfo, ScorableReport, SubtestCounts, TestResultIter};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
@@ -38,7 +38,7 @@ pub struct WptReport {
     pub results: Vec<TestResult>,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct WptRunInfo {
     /// The browser engine tested (e.g. "servo")
     pub product: String,
@@ -126,6 +126,12 @@ impl ScorableReport for WptReport {
 
     fn results(&self) -> Self::TestIter<'_> {
         self.results.iter()
+    }
+}
+
+impl HasRunInfo for WptReport {
+    fn run_info(&self) -> &WptRunInfo {
+        &self.run_info
     }
 }
 

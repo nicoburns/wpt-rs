@@ -1,7 +1,7 @@
 //! The cut-down version of the "wptreport" format used by Servo to store scores
 //! in the internal-wpt-dashboard repository
 
-use crate::{ScorableReport, SubtestCounts, TestResultIter};
+use crate::{HasRunInfo, ScorableReport, SubtestCounts, TestResultIter};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
@@ -31,6 +31,12 @@ impl ScorableReport for WptScores {
 
     fn results(&self) -> Self::TestIter<'_> {
         self.test_scores.iter()
+    }
+}
+
+impl HasRunInfo for WptScores {
+    fn run_info(&self) -> &WptRunInfo {
+        &self.run_info
     }
 }
 

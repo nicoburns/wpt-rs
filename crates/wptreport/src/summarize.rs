@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::score_summary::{RunScores, RunSummary, ScoreSummaryReport};
+use crate::score_summary::{FocusArea, RunScores, RunSummary, ScoreSummaryReport};
 use crate::wpt_report::WptRunInfo;
 use crate::AreaScores;
 
@@ -12,9 +12,10 @@ pub struct RunInfoWithScores {
 
 pub fn summarize_results(
     runs: &[RunInfoWithScores],
-    focus_areas: &Vec<String>,
+    focus_areas: &[FocusArea],
 ) -> ScoreSummaryReport {
-    let focus_areas = (*focus_areas).clone();
+    let focus_areas = (*focus_areas).to_vec();
+
     let mapped_runs = runs
         .iter()
         .map(|run| RunSummary {
@@ -27,13 +28,21 @@ pub fn summarize_results(
                 .unwrap_or_else(|| String::from("unknown")),
             scores: focus_areas
                 .iter()
-                .map(|area| RunScores::from(*run.scores.get(area).unwrap()))
+                .map(|focus_area| {
+                    RunScores::from(
+                        focus_area
+                            .areas
+                            .iter()
+                            .map(|area| run.scores.get(area).cloned().unwrap_or_default())
+                            .sum::<AreaScores>(),
+                    )
+                })
                 .collect(),
         })
         .collect();
 
     ScoreSummaryReport {
-        focus_areas,
+        focus_areas: focus_areas.iter().map(|a| a.name.to_string()).collect(),
         runs: mapped_runs,
     }
 }

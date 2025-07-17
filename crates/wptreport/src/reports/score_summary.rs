@@ -14,6 +14,14 @@ pub struct FocusArea {
     pub name: String,
     pub areas: Vec<String>,
 }
+impl From<&str> for FocusArea {
+    fn from(value: &str) -> Self {
+        Self {
+            name: value.to_string(),
+            areas: vec![value.to_string()],
+        }
+    }
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RunSummary {

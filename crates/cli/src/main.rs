@@ -1,17 +1,20 @@
 use std::collections::BTreeMap;
-use std::fs::{read_dir, File};
-use std::io::{BufReader, Read};
+use std::fs::{self, read_dir, File};
+use std::io::Read;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::{env, time::Instant};
 
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use rayon::iter::{IntoParallelRefIterator as _, ParallelIterator as _};
 use serde::de::DeserializeOwned;
+use wptreport::score_summary::FocusArea;
+use wptreport::summarize::{summarize_results, RunInfoWithScores};
+use wptreport::wpt_report::WptRunInfo;
 use xz2::read::XzDecoder;
 // use serde_jsonlines::{json_lines, JsonLinesReader};
 
 use wptreport::reports::servo_test_scores::WptScores;
-use wptreport::{score_wpt_report, AreaScores, ScorableReport};
+use wptreport::{score_wpt_report, AreaScores, HasRunInfo, ScorableReport};
 
 // Use jemalloc as the allocator
 #[cfg(not(target_env = "msvc"))]
@@ -22,12 +25,55 @@ fn as_percent(amount: u32, out_of: u32) -> f32 {
     (amount as f32 / out_of as f32) * 100.0
 }
 
+fn get_focus_areas() -> Vec<FocusArea> {
+    [
+        FocusArea {
+            name: String::from("All WPT tests"),
+            areas: vec![String::from("")],
+        },
+        FocusArea::from("/content-security-policy"),
+        FocusArea::from("/css"),
+        FocusArea::from("/css/CSS2"),
+        FocusArea::from("/css/CSS2/abspos"),
+        FocusArea::from("/css/CSS2/box-display"),
+        FocusArea::from("/css/CSS2/floats"),
+        FocusArea::from("/css/CSS2/floats-clear"),
+        FocusArea::from("/css/CSS2/linebox"),
+        FocusArea::from("/css/CSS2/margin-padding-clear"),
+        FocusArea::from("/css/CSS2/normal-flow"),
+        FocusArea::from("/css/CSS2/positioning"),
+        FocusArea {
+            name: String::from("/css/CSS2/tables/ & /css/css-tables/"),
+            areas: vec![
+                String::from("/css/CSS2/tables"),
+                String::from("/css/css-tables"),
+            ],
+        },
+        FocusArea::from("/css/cssom"),
+        FocusArea::from("/css/css-align"),
+        FocusArea::from("/css/css-flexbox"),
+        FocusArea::from("/css/css-grid"),
+        FocusArea::from("/css/css-position"),
+        FocusArea::from("/css/css-sizing"),
+        FocusArea::from("/css/css-text"),
+        FocusArea::from("/gamepad"),
+        FocusArea::from("/shadow-dom"),
+        FocusArea::from("/streams"),
+        FocusArea::from("/trusted-types"),
+        FocusArea::from("/WebCryptoAPI"),
+        FocusArea::from("/webxr"),
+    ]
+    .into_iter()
+    .collect()
+}
+
 fn main() {
     let mut args = env::args();
     let in_path = args.nth(1).unwrap();
     let in_path_buf = PathBuf::from(&in_path);
 
     let start = Instant::now();
+    let focus_areas = get_focus_areas();
 
     if in_path_buf.is_file() {
         let result = score_report::<WptScores>(&in_path);
@@ -62,15 +108,30 @@ fn main() {
         let count = file_paths.len();
         let i = AtomicU64::new(0);
 
-        file_paths.par_iter().for_each(|file_path| {
-            let result = score_report::<WptScores>(file_path);
-            let file_name = &file_path.rsplit_once('/').unwrap().1;
-            let i = i.fetch_add(1, Ordering::SeqCst);
-            println!(
-                "[{i}/{count}] Processed {file_name} in {}ms (read in {}ms; Scored in {}ms)",
-                result.total_time, result.read_time, result.score_time
-            );
-        });
+        let scores: Vec<_> = file_paths
+            .par_iter()
+            .map(|file_path| {
+                let result = score_report::<WptScores>(file_path);
+                let file_name = &file_path.rsplit_once('/').unwrap().1;
+                let i = i.fetch_add(1, Ordering::SeqCst);
+                println!(
+                    "[{i}/{count}] Processed {file_name} in {}ms (read in {}ms; Scored in {}ms)",
+                    result.total_time, result.read_time, result.score_time
+                );
+
+                let date = file_name[0..10].to_string();
+                RunInfoWithScores {
+                    date,
+                    info: result.run_info,
+                    scores: result.scores_by_area,
+                }
+            })
+            .collect();
+
+        // Write scores.json file
+        let score_summary = summarize_results(&scores, &focus_areas);
+        let score_summary_str = serde_json::to_string(&score_summary).unwrap();
+        fs::write("./scores.json", score_summary_str).unwrap();
 
         let grand_total_time = start.elapsed().as_secs();
         println!("====================");
@@ -82,49 +143,37 @@ fn main() {
 
 pub struct ScoreResult {
     scores_by_area: BTreeMap<String, AreaScores>,
+    run_info: WptRunInfo,
     read_time: u128,
     score_time: u128,
     total_time: u128,
 }
 
-pub fn read_report_file<T: DeserializeOwned>(file_path: &str) -> T {
+pub fn read_maybe_compressed_file(file_path: &str) -> String {
     let file = File::open(file_path).unwrap();
 
-    let report: T = if file_path.ends_with("xz") {
+    if file_path.ends_with("xz") {
         let mut decompressed = XzDecoder::new(file);
         let mut s = String::new();
         decompressed.read_to_string(&mut s).unwrap();
-        serde_json::from_str(&s).unwrap()
+        s
     } else if file_path.ends_with("zst") {
         let mut decompressed = zstd::Decoder::new(file).unwrap();
         let mut s = String::new();
         decompressed.read_to_string(&mut s).unwrap();
-        serde_json::from_str(&s).unwrap()
-
-        // Code for decoding JSON directly from the stream. This is more memory efficient but
-        // significantly slower.
-        //
-        // serde_json::from_reader(&mut decompressed).unwrap()
+        s
     } else {
-        let mut buffered = BufReader::new(file);
-        serde_json::from_reader(&mut buffered).unwrap()
-
-        // Code for reading "json lines" instead of JSON
-        //
-        // let lines_reader = JsonLinesReader::new(&mut buffered);
-        // lines_reader
-        //     .read_all()
-        //     .map(|result| result.unwrap())
-        //     .collect()
-    };
-
-    report
+        fs::read_to_string(file_path).unwrap()
+    }
 }
 
-pub fn score_report<T: DeserializeOwned + ScorableReport>(file_path: &str) -> ScoreResult {
+pub fn score_report<T: DeserializeOwned + ScorableReport + HasRunInfo>(
+    file_path: &str,
+) -> ScoreResult {
     let read_start = Instant::now();
 
-    let report: T = read_report_file(file_path);
+    let report_str = read_maybe_compressed_file(file_path);
+    let report: T = serde_json::from_str(&report_str).unwrap();
 
     let read_elapsed = read_start.elapsed().as_millis();
 
@@ -135,6 +184,7 @@ pub fn score_report<T: DeserializeOwned + ScorableReport>(file_path: &str) -> Sc
 
     ScoreResult {
         scores_by_area,
+        run_info: report.run_info().clone(),
         read_time: read_elapsed,
         score_time: score_elapsed,
         total_time: total_elapsed,
