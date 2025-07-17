@@ -105,17 +105,21 @@ fn main() {
             .collect();
         file_paths.sort();
 
-        let count = file_paths.len();
-        if count == 0 {
+        // Load most recent report
+        let Some(latest_report_path) = file_paths.last() else {
             println!("No files found");
             return;
-        }
+        };
+        let latest_report_str = read_maybe_compressed_file(latest_report_path);
+        let latest_report: WptScores = serde_json::from_str(&latest_report_str).ok().unwrap();
 
+        let count = file_paths.len();
         let i = AtomicU64::new(0);
         let scores: Vec<_> = file_paths
             .par_iter()
             .filter_map(|file_path| {
-                let result = score_report::<WptScores>(file_path)?;
+                let result =
+                    score_report_against_reference::<WptScores>(file_path, &latest_report)?;
                 let file_name = &file_path.rsplit_once('/').unwrap().1;
                 let i = i.fetch_add(1, Ordering::SeqCst);
                 println!(
@@ -169,6 +173,36 @@ pub fn read_maybe_compressed_file(file_path: &str) -> String {
     } else {
         fs::read_to_string(file_path).unwrap()
     }
+}
+
+pub fn score_report_against_reference<T>(
+    file_path: &str,
+    reference: &WptScores,
+) -> Option<ScoreResult>
+where
+    T: DeserializeOwned,
+    WptScores: From<T>,
+{
+    let read_start = Instant::now();
+
+    let report_str = read_maybe_compressed_file(file_path);
+    let report: T = serde_json::from_str(&report_str).ok()?;
+    let scores = WptScores::from(report);
+
+    let read_elapsed = read_start.elapsed().as_millis();
+
+    let score_start = Instant::now();
+    let scores_by_area = scores.score_against(reference);
+    let score_elapsed = score_start.elapsed().as_millis();
+    let total_elapsed = read_start.elapsed().as_millis();
+
+    Some(ScoreResult {
+        scores_by_area,
+        run_info: scores.run_info,
+        read_time: read_elapsed,
+        score_time: score_elapsed,
+        total_time: total_elapsed,
+    })
 }
 
 pub fn score_report<T: DeserializeOwned + ScorableReport + HasRunInfo>(

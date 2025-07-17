@@ -37,10 +37,10 @@ pub struct RunSummary {
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct RunScores {
-    pub interop_score: u16,
+    // pub interop_score: u16,
     pub total_tests: u32,
     pub total_score: f64, // Servo score
-    pub total_tests_passed: u32,
+    // pub total_tests_passed: u32,
     pub total_subtests: u32,
     pub total_subtests_passed: u32,
 }
@@ -48,10 +48,10 @@ pub struct RunScores {
 impl From<AreaScores> for RunScores {
     fn from(scores: AreaScores) -> Self {
         Self {
-            interop_score: scores.interop_score(),
+            // interop_score: scores.interop_score(),
             total_tests: scores.tests.total,
             total_score: scores.servo_score(),
-            total_tests_passed: scores.tests.pass,
+            // total_tests_passed: scores.tests.pass,
             total_subtests: scores.subtests.total,
             total_subtests_passed: scores.subtests.pass,
         }

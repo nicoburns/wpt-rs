@@ -105,8 +105,10 @@ impl From<WptReport> for WptScores {
 }
 
 mod score {
+    use std::collections::BTreeMap;
+
     use super::{SubtestCounts, TestScore, WptScores};
-    use crate::AreaScores;
+    use crate::{score::area_iter, AreaScores};
 
     impl TestScore {
         /// Scores a test against a reference test
@@ -138,32 +140,53 @@ mod score {
     impl WptScores {
         /// Scores a test run against a reference test run
         /// This means that we only count tests and subtests that were run in the reference run
-        pub fn score_against(&self, reference: &WptScores) -> AreaScores {
-            let mut scores = AreaScores::default();
+        pub fn score_against(&self, reference: &WptScores) -> BTreeMap<String, AreaScores> {
+            // let mut scores = AreaScores::default();
+            let mut results = BTreeMap::<String, AreaScores>::new();
 
             for (test_name, reference_test) in reference.test_scores.iter() {
-                // Update totals
-                scores.tests.total += 1;
-                scores.subtests.total = reference_test.subtests.len() as u32;
-
-                // Get test
-                let Some(test) = self.test_scores.get(test_name) else {
-                    continue;
+                let counts = match self.test_scores.get(test_name) {
+                    Some(test) => test.score_against(reference_test),
+                    None => SubtestCounts {
+                        pass: 0,
+                        total: reference_test.subtests.len().min(1) as u32,
+                    },
                 };
+                let passes = counts.all_passing();
 
-                // Update passes
-                let subtest_counts = test.score_against(reference_test);
-                scores.subtests.pass += subtest_counts.pass;
-                scores.interop_score_sum = subtest_counts.passes_per_1000().into();
-                if subtest_counts.pass == subtest_counts.total && subtest_counts.total != 0 {
-                    scores.tests.total += 1;
+                // Update the scores for each area that the test belongs to
+                for area in area_iter(test_name) {
+                    if results.contains_key(area) {
+                        let test_scores = results.get_mut(area).unwrap();
+                        test_scores.tests.pass += passes as u32;
+                        test_scores.tests.total += 1;
+                        test_scores.subtests.pass += counts.pass;
+                        test_scores.subtests.total += counts.total;
+                        test_scores.interop_score_sum += counts.passes_per_1000() as u64;
+                        test_scores.pass_fraction_sum += counts.pass_fraction();
+                    } else {
+                        let test_scores = AreaScores {
+                            tests: SubtestCounts {
+                                pass: passes as u32,
+                                total: 1,
+                            },
+                            subtests: counts,
+                            // The sum of the interop scores for each individual test, but not
+                            // divided by the total number of tests
+                            interop_score_sum: counts.passes_per_1000() as u64,
+                            // The sum of the "fraction of passing subtests" for each individual test,
+                            // but not divided by the total number of tests
+                            pass_fraction_sum: counts.pass_fraction(),
+                        };
+                        results.insert(area.to_string(), test_scores);
+                    };
                 }
             }
 
-            scores
+            results
         }
 
-        pub fn score(&self) -> AreaScores {
+        pub fn score(&self) -> BTreeMap<String, AreaScores> {
             self.score_against(self)
         }
     }

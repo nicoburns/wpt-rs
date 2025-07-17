@@ -46,7 +46,7 @@ where
     results
 }
 
-fn area_iter(test_path: &str) -> impl Iterator<Item = &str> {
+pub(crate) fn area_iter(test_path: &str) -> impl Iterator<Item = &str> {
     let stripped_path = test_path
         .rsplit_once('/')
         .expect("Test name will contain at least one '/' character")
