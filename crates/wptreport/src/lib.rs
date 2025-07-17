@@ -17,9 +17,7 @@ pub trait HasRunInfo {
 #[rustfmt::skip]
 pub trait ScorableReport {
     type TestResultIter<'b>: TestResultIter + 'b where Self: 'b;
-    type TestIter<'a>: Iterator<Item = Self::TestResultIter<'a>> where Self: 'a;
-
-    fn results(&self) -> Self::TestIter<'_>;
+    fn results(&self) -> impl Iterator<Item = Self::TestResultIter<'_>>;
 }
 
 pub trait TestResultIter {

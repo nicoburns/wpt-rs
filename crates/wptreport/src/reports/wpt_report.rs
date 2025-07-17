@@ -122,9 +122,7 @@ pub struct SubtestResult {
 #[rustfmt::skip]
 impl ScorableReport for WptReport {
     type TestResultIter<'a> = &'a TestResult where Self: 'a;
-    type TestIter<'a> = core::slice::Iter<'a, TestResult> where Self: 'a;
-
-    fn results(&self) -> Self::TestIter<'_> {
+    fn results(&self) -> impl Iterator<Item = Self::TestResultIter<'_>> {
         self.results.iter()
     }
 }

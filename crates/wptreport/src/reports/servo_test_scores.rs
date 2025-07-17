@@ -27,9 +27,7 @@ pub struct SubtestScore {
 #[rustfmt::skip]
 impl ScorableReport for WptScores {
     type TestResultIter<'a> = (&'a String, &'a TestScore) where Self: 'a;
-    type TestIter<'a> = std::collections::btree_map::Iter<'a, String, TestScore> where Self: 'a;
-
-    fn results(&self) -> Self::TestIter<'_> {
+    fn results(&self) -> impl Iterator<Item = Self::TestResultIter<'_>> {
         self.test_scores.iter()
     }
 }
@@ -72,7 +70,7 @@ impl TestResultIter for (&String, &TestScore) {
             .subtests
             .iter()
             .map(|(name, s)| crate::SubtestNameAndResult {
-                name: &name,
+                name,
                 passes: s.score > 0,
             })
     }
