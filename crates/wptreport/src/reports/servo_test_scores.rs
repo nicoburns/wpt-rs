@@ -5,7 +5,7 @@ use crate::{HasRunInfo, ScorableReport, SubtestCounts, TestResultIter};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
-use super::wpt_report::WptRunInfo;
+use super::wpt_report::{SubtestStatus, TestStatus, WptReport, WptRunInfo};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WptScores {
@@ -73,6 +73,34 @@ impl TestResultIter for (&String, &TestScore) {
                 name,
                 passes: s.score > 0,
             })
+    }
+}
+
+impl From<WptReport> for WptScores {
+    fn from(report: WptReport) -> Self {
+        WptScores {
+            run_info: report.run_info,
+            test_scores: report
+                .results
+                .into_iter()
+                .map(|test| {
+                    let score = TestScore {
+                        score: (test.status == TestStatus::Pass) as u32,
+                        subtests: test
+                            .subtests
+                            .into_iter()
+                            .map(|subtest| {
+                                let score = SubtestScore {
+                                    score: (subtest.status == SubtestStatus::Pass) as u32,
+                                };
+                                (subtest.name, score)
+                            })
+                            .collect(),
+                    };
+                    (test.test, score)
+                })
+                .collect(),
+        }
     }
 }
 
