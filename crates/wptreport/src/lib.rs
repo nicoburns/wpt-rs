@@ -34,6 +34,8 @@ pub struct AreaScores {
     // See: https://github.com/web-platform-tests/results-analysis/blob/0357bcf8973a6de5f544e1f82e50e7322805e214/interop-scoring/main.js#L250
     // This value represents the sum of the interop score for each individual test. But has not been divided by the number of tests.
     pub interop_score_sum: u64,
+    // The sum of the "fraction of passing subtests" for each individual test (as a float). But not divided by the total number of tests
+    pub pass_fraction_sum: f64,
 }
 
 impl Add for AreaScores {
@@ -43,6 +45,7 @@ impl Add for AreaScores {
             tests: self.tests + rhs.tests,
             subtests: self.subtests + rhs.subtests,
             interop_score_sum: self.interop_score_sum + rhs.interop_score_sum,
+            pass_fraction_sum: self.pass_fraction_sum + rhs.pass_fraction_sum,
         }
     }
 }
@@ -53,6 +56,10 @@ impl AreaScores {
     /// See: https://github.com/web-platform-tests/results-analysis/blob/0357bcf8973a6de5f544e1f82e50e7322805e214/interop-scoring/main.js#L250
     pub fn interop_score(&self) -> u16 {
         (self.interop_score_sum as f64 / self.tests.total as f64).floor() as u16
+    }
+
+    pub fn servo_score(&self) -> f64 {
+        self.pass_fraction_sum
     }
 }
 

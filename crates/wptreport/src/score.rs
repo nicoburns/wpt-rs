@@ -23,6 +23,7 @@ where
                 test_scores.subtests.pass += counts.pass;
                 test_scores.subtests.total += counts.total;
                 test_scores.interop_score_sum += counts.passes_per_1000() as u64;
+                test_scores.pass_fraction_sum += counts.pass_fraction();
             } else {
                 let test_scores = AreaScores {
                     tests: SubtestCounts {
@@ -33,6 +34,9 @@ where
                     // The sum of the interop scores for each individual test, but not
                     // divided by the total number of tests
                     interop_score_sum: counts.passes_per_1000() as u64,
+                    // The sum of the "fraction of passing subtests" for each individual test,
+                    // but not divided by the total number of tests
+                    pass_fraction_sum: counts.pass_fraction(),
                 };
                 results.insert(area.to_string(), test_scores);
             };
