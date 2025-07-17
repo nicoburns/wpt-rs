@@ -3,6 +3,12 @@ use serde::{Deserialize, Serialize};
 
 use crate::AreaScores;
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ScoreSummaryReport {
+    pub focus_areas: Vec<String>,
+    pub runs: Vec<RunSummary>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FocusArea {
     pub name: String,
@@ -42,10 +48,4 @@ impl From<AreaScores> for RunScores {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ScoreSummaryReport {
-    // TODO: remove area_keys
-    pub area_keys: Vec<usize>,
-    pub focus_areas: Vec<String>,
-    pub scores: Vec<RunSummary>,
-}
+
