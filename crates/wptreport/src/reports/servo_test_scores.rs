@@ -149,7 +149,7 @@ mod score {
                     Some(test) => test.score_against(reference_test),
                     None => SubtestCounts {
                         pass: 0,
-                        total: reference_test.subtests.len().min(1) as u32,
+                        total: reference_test.subtests.len().max(1) as u32,
                     },
                 };
                 let passes = counts.all_passing();
