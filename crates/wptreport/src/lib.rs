@@ -10,6 +10,10 @@ use reports::wpt_report::WptRunInfo;
 pub use reports::{score_summary, servo_test_scores, wpt_report};
 pub use score::score_wpt_report;
 
+pub trait HasRunInfo {
+    fn run_info(&self) -> &WptRunInfo;
+}
+
 #[rustfmt::skip]
 pub trait ScorableReport {
     type TestResultIter<'b>: TestResultIter + 'b where Self: 'b;
@@ -18,13 +22,17 @@ pub trait ScorableReport {
     fn results(&self) -> Self::TestIter<'_>;
 }
 
-pub trait HasRunInfo {
-    fn run_info(&self) -> &WptRunInfo;
-}
-
 pub trait TestResultIter {
     fn name(&self) -> &str;
     fn subtest_counts(&self) -> SubtestCounts;
+
+    fn subtest_exist_and_passes(&self, name: &str) -> bool;
+    fn iter_subtests_results(&self) -> impl Iterator<Item = SubtestNameAndResult<'_>>;
+}
+
+pub struct SubtestNameAndResult<'a> {
+    pub name: &'a str,
+    pub passes: bool,
 }
 
 #[derive(Debug, Copy, Clone, Default)]

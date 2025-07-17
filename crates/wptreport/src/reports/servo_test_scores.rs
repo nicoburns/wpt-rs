@@ -60,6 +60,22 @@ impl TestResultIter for (&String, &TestScore) {
             SubtestCounts { pass, total }
         }
     }
+
+    fn subtest_exist_and_passes(&self, name: &str) -> bool {
+        self.1.subtests.get(name).is_some_and(|s| s.score > 0)
+    }
+
+    fn iter_subtests_results<'a>(
+        &'a self,
+    ) -> impl Iterator<Item = crate::SubtestNameAndResult<'a>> {
+        self.1
+            .subtests
+            .iter()
+            .map(|(name, s)| crate::SubtestNameAndResult {
+                name: &name,
+                passes: s.score > 0,
+            })
+    }
 }
 
 mod score {

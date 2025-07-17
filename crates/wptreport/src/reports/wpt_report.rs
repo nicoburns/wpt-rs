@@ -1,6 +1,6 @@
 //! The standard "wptreport" format produced by the official wptrunner as well
 //! as other wpt test runners.
-use crate::{HasRunInfo, ScorableReport, SubtestCounts, TestResultIter};
+use crate::{HasRunInfo, ScorableReport, SubtestCounts, SubtestNameAndResult, TestResultIter};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
@@ -155,5 +155,22 @@ impl TestResultIter for &TestResult {
             });
             SubtestCounts { pass, total }
         }
+    }
+
+    fn subtest_exist_and_passes(&self, name: &str) -> bool {
+        self.subtests
+            .iter()
+            .find(|s| s.name == name)
+            .map(|s| s.status == SubtestStatus::Pass)
+            .unwrap_or(false)
+    }
+
+    fn iter_subtests_results(&self) -> impl Iterator<Item = SubtestNameAndResult<'_>> {
+        self.subtests
+            .iter()
+            .map(|s: &SubtestResult| SubtestNameAndResult {
+                name: &s.name,
+                passes: s.status == SubtestStatus::Pass,
+            })
     }
 }
