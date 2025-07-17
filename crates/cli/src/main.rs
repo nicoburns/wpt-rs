@@ -7,7 +7,6 @@ use std::{env, time::Instant};
 
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use serde::de::DeserializeOwned;
-use serde_json;
 use xz2::read::XzDecoder;
 // use serde_jsonlines::{json_lines, JsonLinesReader};
 
@@ -24,8 +23,8 @@ fn as_percent(amount: u32, out_of: u32) -> f32 {
 }
 
 fn main() {
-    let args = env::args();
-    let in_path = args.skip(1).next().unwrap();
+    let mut args = env::args();
+    let in_path = args.nth(1).unwrap();
     let in_path_buf = PathBuf::from(&in_path);
 
     let start = Instant::now();
@@ -64,7 +63,7 @@ fn main() {
         let i = AtomicU64::new(0);
 
         file_paths.par_iter().for_each(|file_path| {
-            let result = score_report::<WptScores>(&file_path);
+            let result = score_report::<WptScores>(file_path);
             let file_name = &file_path.rsplit_once('/').unwrap().1;
             let i = i.fetch_add(1, Ordering::SeqCst);
             println!(
@@ -89,7 +88,7 @@ pub struct ScoreResult {
 }
 
 pub fn read_report_file<T: DeserializeOwned>(file_path: &str) -> T {
-    let file = File::open(&file_path).unwrap();
+    let file = File::open(file_path).unwrap();
 
     let report: T = if file_path.ends_with("xz") {
         let mut decompressed = XzDecoder::new(file);

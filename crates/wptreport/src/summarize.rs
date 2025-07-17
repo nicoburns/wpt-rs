@@ -11,7 +11,7 @@ pub struct RunInfoWithScores {
 }
 
 pub fn summarize_results(
-    runs: &Vec<RunInfoWithScores>,
+    runs: &[RunInfoWithScores],
     focus_areas: &Vec<String>,
 ) -> ScoreSummaryReport {
     let focus_areas = (*focus_areas).clone();
@@ -27,7 +27,7 @@ pub fn summarize_results(
                 .unwrap_or_else(|| String::from("unknown")),
             scores: focus_areas
                 .iter()
-                .map(|area| RunScores::from(*run.scores.get(&*area).unwrap()))
+                .map(|area| RunScores::from(*run.scores.get(area).unwrap()))
                 .collect(),
         })
         .collect();

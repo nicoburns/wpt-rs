@@ -47,5 +47,3 @@ impl From<AreaScores> for RunScores {
         }
     }
 }
-
-

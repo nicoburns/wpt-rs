@@ -11,6 +11,12 @@ pub struct WptReportMerger {
     scores: BTreeMap<String, TestResult>,
 }
 
+impl Default for WptReportMerger {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl WptReportMerger {
     pub fn new() -> Self {
         Self {

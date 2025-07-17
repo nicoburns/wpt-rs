@@ -44,7 +44,7 @@ impl TestResultIter for (&String, &TestScore) {
         if total == 0 {
             SubtestCounts {
                 total: 1,
-                pass: self.1.score as u32,
+                pass: self.1.score,
             }
         } else {
             let pass = self.1.subtests.values().fold(0, |mut pass_count, subtest| {
