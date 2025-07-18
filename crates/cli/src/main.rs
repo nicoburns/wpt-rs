@@ -29,6 +29,10 @@ pub(crate) enum Commands {
     /// Merge a chunked WPT report into a single report
     #[clap(name = "merge")]
     Merge(commands::Merge),
+
+    /// Convert a WPT report into a Servo Scores report
+    #[clap(name = "convert")]
+    Convert(commands::Convert),
 }
 
 fn main() {
@@ -36,5 +40,6 @@ fn main() {
     match args.action {
         Commands::CalcScores(cmd) => cmd.run(),
         Commands::Merge(cmd) => cmd.run(),
+        Commands::Convert(cmd) => cmd.run(),
     };
 }
