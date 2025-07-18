@@ -25,11 +25,16 @@ pub(crate) enum Commands {
     /// Calculate a score summary from a directory of reports
     #[clap(name = "calc-scores")]
     CalcScores(commands::CalcScores),
+
+    /// Merge a chunked WPT report into a single report
+    #[clap(name = "merge")]
+    Merge(commands::Merge),
 }
 
 fn main() {
     let args = Cli::parse();
     match args.action {
         Commands::CalcScores(cmd) => cmd.run(),
+        Commands::Merge(cmd) => cmd.run(),
     };
 }

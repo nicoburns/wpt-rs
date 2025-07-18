@@ -95,9 +95,9 @@ impl CalcScores {
                     let file_name = file_path.file_name().unwrap().to_str().unwrap();
                     let i = i.fetch_add(1, Ordering::SeqCst) + 1;
                     println!(
-                    "[{i}/{count}] Processed {file_name} in {}ms (read in {}ms; Scored in {}ms)",
-                    result.total_time, result.read_time, result.score_time
-                );
+                        "[{i}/{count}] Processed {file_name} in {}ms (read in {}ms; Scored in {}ms)",
+                        result.total_time, result.read_time, result.score_time
+                    );
 
                     let date = file_name[0..10].to_string();
                     Some(RunInfoWithScores {
