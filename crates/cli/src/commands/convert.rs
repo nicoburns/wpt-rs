@@ -18,6 +18,10 @@ pub struct Convert {
     /// Output merged report to OUT
     #[arg(long)]
     out: PathBuf,
+
+    /// Sort tests in JS object iteration order
+    #[arg(long)]
+    js_sort: bool,
 }
 
 impl Convert {
@@ -33,9 +37,13 @@ impl Convert {
         println!("Read and decompress report in {read_elapsed}ms");
 
         let convert_start = Instant::now();
-        let servo_scores_report = WptScores::from(wpt_report);
+        let mut servo_scores_report = WptScores::from(wpt_report);
         let convert_elapsed = convert_start.elapsed().as_millis();
         println!("Converted report to servo wpt scores format in {convert_elapsed}ms");
+
+        if self.js_sort {
+            servo_scores_report.apply_javascript_key_sort();
+        }
 
         let write_start = Instant::now();
         let servo_scores_report_str = serde_json::to_string(&servo_scores_report).unwrap();

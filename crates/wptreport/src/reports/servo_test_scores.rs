@@ -4,14 +4,13 @@
 use crate::{HasRunInfo, ScorableReport, SubtestCounts, TestResultIter};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
 
 use super::wpt_report::{SubtestStatus, TestStatus, WptReport, WptRunInfo};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WptScores {
     pub run_info: WptRunInfo,
-    pub test_scores: BTreeMap<String, TestScore>,
+    pub test_scores: IndexMap<String, TestScore>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -101,6 +100,63 @@ impl From<WptReport> for WptScores {
                     (test.test, score)
                 })
                 .collect(),
+        }
+    }
+}
+
+impl WptScores {
+    /// In order to match the serialization order of a JavaScript object, it is useful to be be able to
+    /// sort keys in the order in which JS seralizes things. We also first apply an alphabetic sort so
+    /// that the sort order is deterministic
+    pub fn apply_javascript_key_sort(&mut self) {
+        use std::cmp::Ordering;
+
+        #[inline(always)]
+        fn is_digit(c: &u8) -> bool {
+            *c >= b'0' && *c <= b'9'
+        }
+
+        #[inline(always)]
+        fn javascript_object_key_sort<V>(
+            a_key: &String,
+            _a_value: &V,
+            b_key: &String,
+            _b_value: &V,
+        ) -> Ordering {
+            let a_is_int = a_key.as_bytes().iter().all(is_digit)
+                && (a_key.len() == 1 || a_key.as_bytes()[0] != b'0');
+            let b_is_int = b_key.as_bytes().iter().all(is_digit)
+                && (b_key.len() == 1 || b_key.as_bytes()[0] != b'0');
+            match (a_is_int, b_is_int) {
+                (true, false) => Ordering::Less,
+                (false, true) => Ordering::Greater,
+                (true, true) => {
+                    let a = a_key.parse::<u64>().unwrap();
+                    let b = b_key.parse::<u64>().unwrap();
+                    a.cmp(&b)
+                }
+                (false, false) => Ordering::Equal,
+            }
+        }
+
+        #[inline(always)]
+        fn alphabetical_javascript_object_key_sort<V>(
+            a_key: &String,
+            _a_value: &V,
+            b_key: &String,
+            _b_value: &V,
+        ) -> Ordering {
+            match javascript_object_key_sort(a_key, _a_value, b_key, _b_value) {
+                Ordering::Less => Ordering::Less,
+                Ordering::Greater => Ordering::Greater,
+                Ordering::Equal => a_key.cmp(b_key),
+            }
+        }
+
+        self.test_scores
+            .sort_by(alphabetical_javascript_object_key_sort);
+        for scores in self.test_scores.values_mut() {
+            scores.subtests.sort_by(javascript_object_key_sort);
         }
     }
 }
