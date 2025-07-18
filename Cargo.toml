@@ -21,4 +21,5 @@ zstd = "0.13"
 xz2 = "0.1"
 tikv-jemallocator = "0.6"
 clap = "4.5"
+indexmap = "2.10"
 

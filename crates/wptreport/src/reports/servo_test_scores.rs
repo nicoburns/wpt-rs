@@ -2,6 +2,7 @@
 //! in the internal-wpt-dashboard repository
 
 use crate::{HasRunInfo, ScorableReport, SubtestCounts, TestResultIter};
+use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
@@ -16,7 +17,7 @@ pub struct WptScores {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TestScore {
     pub score: u32,
-    pub subtests: BTreeMap<String, SubtestScore>,
+    pub subtests: IndexMap<String, SubtestScore>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
