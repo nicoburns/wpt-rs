@@ -2,6 +2,7 @@
 name = "wptreport"
 description = "Tools for working with WPT reports"
 version.workspace = true
+respository.workspace = true
 license.workspace = true
 edition.workspace = true
 

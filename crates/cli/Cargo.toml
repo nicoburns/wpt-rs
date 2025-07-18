@@ -2,6 +2,7 @@
 name = "wpt"
 description = "CLI for working with WPT data"
 version.workspace = true
+respository.workspace = true
 license.workspace = true
 edition.workspace = true
 
