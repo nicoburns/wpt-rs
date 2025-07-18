@@ -21,7 +21,7 @@ pub fn summarize_results(
         .map(|run| RunSummary {
             date: run.date.clone(),
             wpt_revision: run.info.revision[0..9].to_string(),
-            product_version: run
+            product_revision: run
                 .info
                 .browser_version
                 .clone()

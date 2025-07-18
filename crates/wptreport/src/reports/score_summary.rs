@@ -30,7 +30,7 @@ pub struct RunSummary {
     /// The version of the WPT test suite that was run
     pub wpt_revision: String,
     /// The version of the browser that was tested
-    pub product_version: String,
+    pub product_revision: String,
     /// Scores are a percentage expressed a number between 0 and 1000
     pub scores: Vec<RunScores>,
 }
