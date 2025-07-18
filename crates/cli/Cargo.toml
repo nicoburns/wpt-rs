@@ -22,6 +22,7 @@ serde_json = { workspace = true }
 serde-jsonlines = { workspace = true }
 zstd = { workspace = true, optional = true }
 xz2 = { workspace = true, optional = true }
+clap = { workspace = true, features = ["derive", "cargo"] }
 
 [target.'cfg(not(target_env = "msvc"))'.dependencies]
 tikv-jemallocator = { workspace = true, optional = true }
