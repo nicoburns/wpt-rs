@@ -1,6 +1,5 @@
 use std::collections::BTreeMap;
-use std::fs::{self, read_dir, File};
-use std::io::Read;
+use std::fs::{self, read_dir};
 use std::os::unix::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -9,14 +8,13 @@ use std::time::Instant;
 use clap::Parser;
 use rayon::iter::{IntoParallelRefIterator as _, ParallelIterator as _};
 use serde::de::DeserializeOwned;
+use wptreport::reports::servo_test_scores::WptScores;
 use wptreport::score_summary::FocusArea;
 use wptreport::summarize::{summarize_results, RunInfoWithScores};
 use wptreport::wpt_report::WptRunInfo;
-use xz2::read::XzDecoder;
-// use serde_jsonlines::{json_lines, JsonLinesReader};
-
-use wptreport::reports::servo_test_scores::WptScores;
 use wptreport::{score_wpt_report, AreaScores, HasRunInfo, ScorableReport};
+
+use crate::compression::read_maybe_compressed_file;
 
 #[derive(Clone, Debug, Default, Parser)]
 #[clap(name = "calc-scores")]
@@ -49,7 +47,7 @@ impl CalcScores {
         let focus_areas: Vec<FocusArea> = serde_json::from_str(&focus_areas_json).unwrap();
 
         if in_path_buf.is_file() {
-            let result = score_report::<WptScores>(&in_path).unwrap();
+            let result = score_report::<WptScores>(in_path).unwrap();
             for (area, scores) in result.scores_by_area {
                 let tests = scores.tests;
                 let subtests = scores.subtests;
@@ -130,25 +128,6 @@ pub struct ScoreResult {
     read_time: u128,
     score_time: u128,
     total_time: u128,
-}
-
-pub fn read_maybe_compressed_file(file_path: &Path) -> String {
-    let file = File::open(file_path).unwrap();
-
-    let extension = file_path.extension().unwrap().as_bytes();
-    if extension == b"xz" {
-        let mut decompressed = XzDecoder::new(file);
-        let mut s = String::new();
-        decompressed.read_to_string(&mut s).unwrap();
-        s
-    } else if extension == b"zst" {
-        let mut decompressed = zstd::Decoder::new(file).unwrap();
-        let mut s = String::new();
-        decompressed.read_to_string(&mut s).unwrap();
-        s
-    } else {
-        fs::read_to_string(file_path).unwrap()
-    }
 }
 
 pub fn score_report_against_reference<T>(

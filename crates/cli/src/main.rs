@@ -1,6 +1,7 @@
 use clap::{Parser, Subcommand};
 
 mod commands;
+mod compression;
 
 // Use jemalloc as the allocator
 #[cfg(not(target_env = "msvc"))]
