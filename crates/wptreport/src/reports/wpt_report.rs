@@ -60,6 +60,8 @@ pub struct WptRunInfo {
     pub os: String,
     /// OS version number
     pub os_version: String,
+    /// Linux distro (if linux)
+    pub linux_distro: Option<String>,
     /// OS version String
     pub version: String,
     /// The processor architecture the tests were run on (e.g. "arm")
