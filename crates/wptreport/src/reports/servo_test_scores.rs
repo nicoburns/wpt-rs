@@ -140,6 +140,7 @@ impl WptScores {
         }
 
         #[inline(always)]
+        #[allow(dead_code)]
         fn alphabetical_javascript_object_key_sort<V>(
             a_key: &String,
             _a_value: &V,
@@ -153,8 +154,7 @@ impl WptScores {
             }
         }
 
-        self.test_scores
-            .sort_by(alphabetical_javascript_object_key_sort);
+        self.test_scores.sort_keys();
         for scores in self.test_scores.values_mut() {
             scores.subtests.sort_by(javascript_object_key_sort);
         }
