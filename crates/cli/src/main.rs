@@ -33,6 +33,10 @@ pub(crate) enum Commands {
     /// Convert a WPT report into a Servo Scores report
     #[clap(name = "convert")]
     Convert(commands::Convert),
+
+    /// Diff two WPT reports
+    #[clap(name = "diff")]
+    Diff(commands::Diff),
 }
 
 fn main() {
@@ -41,5 +45,6 @@ fn main() {
         Commands::CalcScores(cmd) => cmd.run(),
         Commands::Merge(cmd) => cmd.run(),
         Commands::Convert(cmd) => cmd.run(),
+        Commands::Diff(cmd) => cmd.run(),
     };
 }
