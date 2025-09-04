@@ -37,6 +37,10 @@ pub(crate) enum Commands {
     /// Diff two WPT reports
     #[clap(name = "diff")]
     Diff(commands::Diff),
+
+    /// Get WPT scores from other browsers and convert them similarly.
+    #[clap(name = "other_browsers")]
+    GetOtherBrowsers(commands::OtherBrowsers),
 }
 
 fn main() {
@@ -46,5 +50,6 @@ fn main() {
         Commands::Merge(cmd) => cmd.run(),
         Commands::Convert(cmd) => cmd.run(),
         Commands::Diff(cmd) => cmd.run(),
+        Commands::GetOtherBrowsers(cmd) => cmd.run(),
     };
 }

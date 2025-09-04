@@ -6,3 +6,5 @@ mod convert;
 pub use convert::Convert;
 mod diff;
 pub use diff::Diff;
+mod other_browsers;
+pub use other_browsers::OtherBrowsers;

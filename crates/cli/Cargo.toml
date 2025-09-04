@@ -19,11 +19,16 @@ wptreport = { workspace = true }
 # 3rd-party dependencies
 rayon = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
-serde_json = { workspace = true }
+serde_json.workspace = true
 serde-jsonlines = { workspace = true }
 zstd = { workspace = true, optional = true }
 xz2 = { workspace = true, optional = true }
 clap = { workspace = true, features = ["derive", "cargo"] }
+reqwest = { workspace = true, features = ["blocking", "json", "gzip"] }
+url = { version = "2.5.7", features = ["serde"] }
+tempdir = "0.3.7"
+tempfile = "3.21.0"
+anyhow = "1.0.99"
 
 [target.'cfg(not(target_env = "msvc"))'.dependencies]
 tikv-jemallocator = { workspace = true, optional = true }
