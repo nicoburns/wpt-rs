@@ -111,7 +111,7 @@ impl CalcScores {
             // Write scores.json file
             let score_summary = summarize_results(&scores, &focus_areas);
             let score_summary_str = serde_json::to_string(&score_summary).unwrap();
-            fs::write("./scores.json", score_summary_str).unwrap();
+            fs::write(self.out, score_summary_str).unwrap();
 
             let grand_total_time = start.elapsed().as_secs();
             println!("====================");
