@@ -9,6 +9,7 @@ use std::{iter::Sum, ops::Add};
 use reports::wpt_report::WptRunInfo;
 pub use reports::{score_summary, servo_test_scores, wpt_report};
 pub use score::score_wpt_report;
+use serde::{Deserialize, Serialize};
 
 pub trait HasRunInfo {
     fn run_info(&self) -> &WptRunInfo;
@@ -33,7 +34,7 @@ pub struct SubtestNameAndResult<'a> {
     pub passes: bool,
 }
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Copy, Clone, Default, Serialize, Deserialize)]
 pub struct AreaScores {
     pub tests: SubtestCounts,
     pub subtests: SubtestCounts,
@@ -69,7 +70,7 @@ impl AreaScores {
     }
 }
 
-#[derive(Debug, Copy, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SubtestCounts {
     pub pass: u32,
     pub total: u32,
