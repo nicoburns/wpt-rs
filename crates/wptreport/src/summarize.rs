@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 
 use crate::score_summary::{FocusArea, RunScores, RunSummary, ScoreSummaryReport};
 use crate::wpt_report::WptRunInfo;
@@ -12,9 +12,11 @@ pub struct RunInfoWithScores {
 
 pub fn summarize_results(
     runs: &[RunInfoWithScores],
-    focus_areas: &[FocusArea],
+    focus_areas: Option<&[FocusArea]>,
 ) -> ScoreSummaryReport {
-    let focus_areas = (*focus_areas).to_vec();
+    let focus_areas = focus_areas
+        .map(|areas| areas.to_vec())
+        .unwrap_or_else(|| default_focus_areas(runs));
 
     let mapped_runs = runs
         .iter()
@@ -45,4 +47,27 @@ pub fn summarize_results(
         focus_areas: focus_areas.iter().map(|a| a.name.to_string()).collect(),
         runs: mapped_runs,
     }
+}
+
+pub fn default_focus_areas(runs: &[RunInfoWithScores]) -> Vec<FocusArea> {
+    let mut areas: HashSet<String> = HashSet::new();
+
+    for run in runs {
+        for area in run.scores.keys() {
+            areas.insert(area.clone());
+        }
+    }
+
+    let mut focus_areas = Vec::with_capacity(areas.len());
+
+    for area in areas {
+        focus_areas.push(FocusArea {
+            name: area.clone(),
+            areas: vec![area],
+        });
+    }
+
+    focus_areas.sort_unstable_by(|a, b| a.name.cmp(&b.name));
+
+    focus_areas
 }
