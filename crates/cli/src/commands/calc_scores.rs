@@ -8,10 +8,11 @@ use std::time::Instant;
 use clap::Parser;
 use rayon::iter::{IntoParallelRefIterator as _, ParallelIterator as _};
 use serde::de::DeserializeOwned;
+use serde::{Deserialize, Serialize};
 use wptreport::reports::servo_test_scores::WptScores;
 use wptreport::score_summary::FocusArea;
 use wptreport::summarize::{summarize_results, RunInfoWithScores};
-use wptreport::wpt_report::WptRunInfo;
+use wptreport::wpt_report::{WptReport, WptRunInfo};
 use wptreport::{score_wpt_report, AreaScores, HasRunInfo, ScorableReport};
 
 use crate::compression::read_maybe_compressed_file;
@@ -29,7 +30,7 @@ pub struct CalcScores {
 
     /// Read focus areas from FOCUS_AREAS
     #[arg(long)]
-    focus_areas: PathBuf,
+    focus_areas: Option<PathBuf>,
 }
 
 fn as_percent(amount: u32, out_of: u32) -> f32 {
@@ -43,15 +44,24 @@ impl CalcScores {
 
         let start = Instant::now();
 
-        let focus_areas_json = fs::read_to_string(self.focus_areas).unwrap();
-        let focus_areas: Vec<FocusArea> = serde_json::from_str(&focus_areas_json).unwrap();
-
         if in_path_buf.is_file() {
-            let result = score_report::<WptScores>(in_path).unwrap();
+            fn is_focus_area(area: &str) -> bool {
+                let slash_count = area.chars().filter(|c| *c == '/').count();
+                slash_count < 2 || (slash_count == 2 && area.starts_with("css/CSS2"))
+            }
+
+            let result = score_report::<WptReport>(in_path).unwrap();
+            let result_json = serde_json::to_string(&result).unwrap();
+            fs::write(self.out, result_json).unwrap();
+
             for (area, scores) in result.scores_by_area {
+                if !is_focus_area(&area) {
+                    continue;
+                }
+
                 let tests = scores.tests;
                 let subtests = scores.subtests;
-                let percentage = as_percent(scores.tests.pass, scores.tests.total);
+                let percentage = as_percent(subtests.pass, subtests.total);
                 println!(
                     "{area}: {percentage:.2}% ({}/{} tests) ({}/{} subtests)",
                     tests.pass, tests.total, subtests.pass, subtests.total
@@ -66,6 +76,12 @@ impl CalcScores {
                 result.score_time
             );
         } else if in_path_buf.is_dir() {
+            let focus_areas = self.focus_areas.as_ref().map(|path| {
+                let focus_areas_json = fs::read_to_string(path).unwrap();
+                let focus_areas: Vec<FocusArea> = serde_json::from_str(&focus_areas_json).unwrap();
+                focus_areas
+            });
+
             let dir_entries = read_dir(&in_path_buf).unwrap();
 
             let mut file_paths: Vec<_> = dir_entries
@@ -109,7 +125,8 @@ impl CalcScores {
                 .collect();
 
             // Write scores.json file
-            let score_summary = summarize_results(&scores, Some(&focus_areas));
+            let score_summary =
+                summarize_results(&scores, focus_areas.as_ref().map(|areas| &**areas));
             let score_summary_str = serde_json::to_string(&score_summary).unwrap();
             fs::write(self.out, score_summary_str).unwrap();
 
@@ -122,6 +139,7 @@ impl CalcScores {
     }
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct ScoreResult {
     scores_by_area: BTreeMap<String, AreaScores>,
     run_info: WptRunInfo,
