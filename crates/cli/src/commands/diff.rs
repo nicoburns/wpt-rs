@@ -2,8 +2,8 @@ use std::path::PathBuf;
 use std::time::Instant;
 
 use clap::Parser;
-use wptreport::aggregate::{diff, SubtestDetail, TestDiff};
-use wptreport::wpt_report::{TestStatus, WptReport};
+use wptreport::aggregate::{diff, SubtestDetail, SubtestDiff, TestDiff};
+use wptreport::wpt_report::{SubtestStatus, TestStatus, WptReport};
 use wptreport::SubtestCounts;
 
 use crate::compression::read_maybe_compressed_file;
@@ -16,6 +16,10 @@ pub struct Diff {
 
     /// Read report file from FILE_B
     file_b: PathBuf,
+
+    /// List the individual subtests that changed under each test
+    #[clap(long, short)]
+    verbose: bool,
 }
 
 impl Diff {
@@ -28,9 +32,16 @@ impl Diff {
         let report_str = read_maybe_compressed_file(&self.file_b);
         let report_b: WptReport = serde_json::from_str(&report_str).unwrap();
 
-        let diffs = diff(&mut [report_a, report_b], SubtestDetail::Counts);
+        // The individual subtest diff is only computed when it is going to be
+        // displayed, as it is much more expensive than comparing counts
+        let detail = if self.verbose {
+            SubtestDetail::Full
+        } else {
+            SubtestDetail::Counts
+        };
+        let diffs = diff(&mut [report_a, report_b], detail);
 
-        for line in text_lines(&diffs) {
+        for line in text_lines(&diffs, self.verbose) {
             println!("{line}");
         }
 
@@ -79,7 +90,7 @@ fn status_column(diff: &TestDiff) -> String {
     }
 }
 
-pub fn text_lines(diffs: &[TestDiff]) -> Vec<String> {
+pub fn text_lines(diffs: &[TestDiff], verbose: bool) -> Vec<String> {
     let statuses: Vec<String> = diffs.iter().map(status_column).collect();
     let counts: Vec<SubtestCounts> = diffs.iter().map(displayed_counts).collect();
     let deltas: Vec<i64> = diffs.iter().map(delta).collect();
@@ -102,9 +113,32 @@ pub fn text_lines(diffs: &[TestDiff]) -> Vec<String> {
             "{status:<status_width$}  [{pass:>pass_width$}/{total:>total_width$}] ({delta:>delta_width$}) {}",
             diff.test(),
         ));
+
+        if verbose {
+            if let TestDiff::Changed { subtests, .. } = diff {
+                lines.extend(subtests.iter().map(subtest_line));
+            }
+        }
     }
 
     lines
+}
+
+fn subtest_line(subtest: &SubtestDiff) -> String {
+    let status = match subtest {
+        SubtestDiff::Added { status, .. } => {
+            format!("ADD          {}", subtest_status_name(*status))
+        }
+        SubtestDiff::Removed { status, .. } => {
+            format!("REM          {}", subtest_status_name(*status))
+        }
+        SubtestDiff::Changed { before, after, .. } => format!(
+            "{} => {}",
+            subtest_status_name(*before),
+            subtest_status_name(*after)
+        ),
+    };
+    format!("    {status}  {}", escape(subtest.name()))
 }
 
 pub fn summary_lines(diffs: &[TestDiff]) -> Vec<String> {
@@ -159,6 +193,14 @@ fn width_of(values: impl Iterator<Item = u32>) -> usize {
         .unwrap_or(0)
 }
 
+/// Escape characters that would break the one-line-per-change output
+fn escape(name: &str) -> String {
+    name.replace('\\', "\\\\")
+        .replace('\n', "\\n")
+        .replace('\r', "\\r")
+        .replace('\t', "\\t")
+}
+
 fn test_status_name(status: TestStatus) -> &'static str {
     match status {
         TestStatus::Pass => "PASS",
@@ -170,6 +212,19 @@ fn test_status_name(status: TestStatus) -> &'static str {
         TestStatus::Assert => "ASSERT",
         TestStatus::PreconditionFailed => "PRECONDITION_FAILED",
         TestStatus::Skip => "SKIP",
+    }
+}
+
+fn subtest_status_name(status: SubtestStatus) -> &'static str {
+    match status {
+        SubtestStatus::Pass => "PASS",
+        SubtestStatus::Fail => "FAIL",
+        SubtestStatus::Error => "ERROR",
+        SubtestStatus::Timeout => "TIMEOUT",
+        SubtestStatus::Assert => "ASSERT",
+        SubtestStatus::PreconditionFailed => "PRECONDITION_FAILED",
+        SubtestStatus::Notrun => "NOTRUN",
+        SubtestStatus::Skip => "SKIP",
     }
 }
 
@@ -221,12 +276,52 @@ mod tests {
         ];
 
         assert_eq!(
-            text_lines(&diffs),
+            text_lines(&diffs, false),
             vec![
                 "ADD         [  4/    6] (  +4) /css/added.html",
                 "FAIL => OK  [477/23423] (+244) /css/changed.html",
                 "REM         [  2/    3] (  -2) /css/removed.html",
             ]
+        );
+    }
+
+    #[test]
+    fn lists_subtests_when_verbose() {
+        let diffs = vec![TestDiff::Changed {
+            test: String::from("/css/changed.html"),
+            before: TestStatus::Fail,
+            after: TestStatus::Fail,
+            counts_before: counts(3, 10),
+            counts_after: counts(4, 10),
+            subtests: vec![
+                SubtestDiff::Changed {
+                    name: String::from("first\nsubtest"),
+                    before: SubtestStatus::Fail,
+                    after: SubtestStatus::Pass,
+                },
+                SubtestDiff::Added {
+                    name: String::from("second subtest"),
+                    status: SubtestStatus::Fail,
+                },
+                SubtestDiff::Removed {
+                    name: String::from("third subtest"),
+                    status: SubtestStatus::Pass,
+                },
+            ],
+        }];
+
+        assert_eq!(
+            text_lines(&diffs, true),
+            vec![
+                "FAIL => FAIL  [4/10] (+1) /css/changed.html",
+                "    FAIL => PASS  first\\nsubtest",
+                "    ADD          FAIL  second subtest",
+                "    REM          PASS  third subtest",
+            ]
+        );
+        assert_eq!(
+            text_lines(&diffs, false),
+            vec!["FAIL => FAIL  [4/10] (+1) /css/changed.html"]
         );
     }
 
