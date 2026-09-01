@@ -109,11 +109,29 @@ impl TestDiff {
     }
 }
 
+/// How much subtest detail [`diff`] should compute
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum SubtestDetail {
+    /// Compare the aggregate [`SubtestCounts`] of each test only.
+    ///
+    /// A test whose subtests changed without changing the counts (e.g. one
+    /// subtest regressed while another was fixed) is not reported as changed.
+    #[default]
+    Counts,
+    /// Additionally join the subtests of each test by name and report the
+    /// individual subtest changes.
+    ///
+    /// This is significantly more expensive than [`SubtestDetail::Counts`].
+    Full,
+}
+
 /// Compute the differences between two reports.
 ///
-/// Only tests which have been added, removed or whose status, subtest counts
-/// or subtest results have changed are included in the returned list.
-pub fn diff(reports: &mut [WptReport; 2]) -> Vec<TestDiff> {
+/// Only tests which have been added, removed or whose status or subtest counts
+/// have changed are included in the returned list. With [`SubtestDetail::Full`],
+/// tests whose individual subtest results changed are included too, and
+/// [`TestDiff::Changed::subtests`] is populated.
+pub fn diff(reports: &mut [WptReport; 2], detail: SubtestDetail) -> Vec<TestDiff> {
     aggregate(&mut *reports, |results| match (results[0], results[1]) {
         (None, None) => unreachable!(),
         (Some(test), None) => Some(TestDiff::Removed {
@@ -127,7 +145,10 @@ pub fn diff(reports: &mut [WptReport; 2]) -> Vec<TestDiff> {
             counts: test.subtest_counts(),
         }),
         (Some(a), Some(b)) => {
-            let subtests = diff_subtests(a, b);
+            let subtests = match detail {
+                SubtestDetail::Counts => Vec::new(),
+                SubtestDetail::Full => diff_subtests(a, b),
+            };
             let counts_before = a.subtest_counts();
             let counts_after = b.subtest_counts();
 
@@ -248,7 +269,7 @@ mod tests {
             &[("one", SubtestStatus::Pass)],
         )]);
 
-        assert_eq!(diff(&mut [a, b]), Vec::new());
+        assert_eq!(diff(&mut [a, b], SubtestDetail::Full), Vec::new());
     }
 
     #[test]
@@ -261,7 +282,7 @@ mod tests {
         )]);
 
         assert_eq!(
-            diff(&mut [a, b]),
+            diff(&mut [a, b], SubtestDetail::Counts),
             vec![
                 TestDiff::Added {
                     test: String::from("/css/added.html"),
@@ -283,7 +304,7 @@ mod tests {
         let b = report(vec![test("/css/a.html", TestStatus::Pass, &[])]);
 
         assert_eq!(
-            diff(&mut [a, b]),
+            diff(&mut [a, b], SubtestDetail::Counts),
             vec![TestDiff::Changed {
                 test: String::from("/css/a.html"),
                 before: TestStatus::Fail,
@@ -297,27 +318,31 @@ mod tests {
 
     #[test]
     fn reports_subtest_changes_when_status_is_unchanged() {
-        let a = report(vec![test(
-            "/css/a.html",
-            TestStatus::Ok,
-            &[
-                ("one", SubtestStatus::Fail),
-                ("two", SubtestStatus::Pass),
-                ("three", SubtestStatus::Pass),
-            ],
-        )]);
-        let b = report(vec![test(
-            "/css/a.html",
-            TestStatus::Ok,
-            &[
-                ("one", SubtestStatus::Pass),
-                ("two", SubtestStatus::Pass),
-                ("four", SubtestStatus::Fail),
-            ],
-        )]);
+        let a = || {
+            report(vec![test(
+                "/css/a.html",
+                TestStatus::Ok,
+                &[
+                    ("one", SubtestStatus::Fail),
+                    ("two", SubtestStatus::Pass),
+                    ("three", SubtestStatus::Pass),
+                ],
+            )])
+        };
+        let b = || {
+            report(vec![test(
+                "/css/a.html",
+                TestStatus::Ok,
+                &[
+                    ("one", SubtestStatus::Pass),
+                    ("two", SubtestStatus::Pass),
+                    ("four", SubtestStatus::Fail),
+                ],
+            )])
+        };
 
         assert_eq!(
-            diff(&mut [a, b]),
+            diff(&mut [a(), b()], SubtestDetail::Full),
             vec![TestDiff::Changed {
                 test: String::from("/css/a.html"),
                 before: TestStatus::Ok,
@@ -341,5 +366,8 @@ mod tests {
                 ],
             }]
         );
+
+        // The counts are identical, so the counts-only diff sees no change
+        assert_eq!(diff(&mut [a(), b()], SubtestDetail::Counts), Vec::new());
     }
 }
