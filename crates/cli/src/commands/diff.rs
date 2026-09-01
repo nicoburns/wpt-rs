@@ -2,8 +2,9 @@ use std::path::PathBuf;
 use std::time::Instant;
 
 use clap::Parser;
-use wptreport::aggregate::aggregate;
-use wptreport::wpt_report::WptReport;
+use wptreport::aggregate::{diff, TestDiff};
+use wptreport::wpt_report::{TestStatus, WptReport};
+use wptreport::SubtestCounts;
 
 use crate::compression::read_maybe_compressed_file;
 
@@ -27,25 +28,245 @@ impl Diff {
         let report_str = read_maybe_compressed_file(&self.file_b);
         let report_b: WptReport = serde_json::from_str(&report_str).unwrap();
 
-        // Diff and print results
-        aggregate(&mut [report_a, report_b], |results| {
-            let a = results[0];
-            let b = results[1];
+        let diffs = diff(&mut [report_a, report_b]);
 
-            match (a, b) {
-                (None, None) => unreachable!(),
-                (Some(test), None) => println!("REM  {}", test.test),
-                (None, Some(test)) => println!("ADD  {}", test.test),
-                (Some(a), Some(b)) => {
-                    if a.status != b.status {
-                        println!("{:?} => {:?} {}", a.status, b.status, a.test)
-                    }
-                }
-            };
-        });
+        for line in text_lines(&diffs) {
+            println!("{line}");
+        }
 
         let grand_total_time = start.elapsed().as_millis();
         println!("====================");
+        for line in summary_lines(&diffs) {
+            println!("{line}");
+        }
         println!("Done in {grand_total_time}ms");
+    }
+}
+
+/// The change in the number of passing subtests
+fn delta(diff: &TestDiff) -> i64 {
+    match diff {
+        TestDiff::Added { counts, .. } => i64::from(counts.pass),
+        TestDiff::Removed { counts, .. } => -i64::from(counts.pass),
+        TestDiff::Changed {
+            counts_before,
+            counts_after,
+            ..
+        } => i64::from(counts_after.pass) - i64::from(counts_before.pass),
+    }
+}
+
+/// The subtest counts to display: the new state of the test, except for
+/// removed tests which only have an old state.
+fn displayed_counts(diff: &TestDiff) -> SubtestCounts {
+    match diff {
+        TestDiff::Added { counts, .. } | TestDiff::Removed { counts, .. } => *counts,
+        TestDiff::Changed { counts_after, .. } => *counts_after,
+    }
+}
+
+fn status_column(diff: &TestDiff) -> String {
+    match diff {
+        TestDiff::Added { .. } => String::from("ADD"),
+        TestDiff::Removed { .. } => String::from("REM"),
+        TestDiff::Changed { before, after, .. } => {
+            format!(
+                "{} => {}",
+                test_status_name(*before),
+                test_status_name(*after)
+            )
+        }
+    }
+}
+
+pub fn text_lines(diffs: &[TestDiff]) -> Vec<String> {
+    let statuses: Vec<String> = diffs.iter().map(status_column).collect();
+    let counts: Vec<SubtestCounts> = diffs.iter().map(displayed_counts).collect();
+    let deltas: Vec<i64> = diffs.iter().map(delta).collect();
+
+    let status_width = statuses.iter().map(String::len).max().unwrap_or(0);
+    let pass_width = width_of(counts.iter().map(|c| c.pass));
+    let total_width = width_of(counts.iter().map(|c| c.total));
+    let delta_width = deltas
+        .iter()
+        .map(|delta| format!("{delta:+}").len())
+        .max()
+        .unwrap_or(0);
+
+    let mut lines = Vec::with_capacity(diffs.len());
+    for (i, diff) in diffs.iter().enumerate() {
+        let status = &statuses[i];
+        let SubtestCounts { pass, total } = counts[i];
+        let delta = format!("{:+}", deltas[i]);
+        lines.push(format!(
+            "{status:<status_width$}  [{pass:>pass_width$}/{total:>total_width$}] ({delta:>delta_width$}) {}",
+            diff.test(),
+        ));
+    }
+
+    lines
+}
+
+pub fn summary_lines(diffs: &[TestDiff]) -> Vec<String> {
+    let mut newly_passing = 0;
+    let mut newly_failing = 0;
+    let mut added = 0;
+    let mut removed = 0;
+    let mut subtests_gained: i64 = 0;
+    let mut subtests_lost: i64 = 0;
+
+    for diff in diffs {
+        match diff {
+            TestDiff::Added { .. } => added += 1,
+            TestDiff::Removed { .. } => removed += 1,
+            TestDiff::Changed { before, after, .. } => {
+                match (is_passing(*before), is_passing(*after)) {
+                    (false, true) => newly_passing += 1,
+                    (true, false) => newly_failing += 1,
+                    _ => {}
+                }
+            }
+        }
+
+        let delta = delta(diff);
+        if delta > 0 {
+            subtests_gained += delta;
+        } else {
+            subtests_lost -= delta;
+        }
+    }
+
+    let net_tests = newly_passing - newly_failing;
+    let net_subtests = subtests_gained - subtests_lost;
+
+    vec![
+        format!(
+            "Tests:    {newly_passing} newly passing, {newly_failing} newly failing, \
+             {added} added, {removed} removed (net {net_tests:+})"
+        ),
+        format!("Subtests: {net_subtests:+} net (+{subtests_gained}, -{subtests_lost})"),
+    ]
+}
+
+fn is_passing(status: TestStatus) -> bool {
+    matches!(status, TestStatus::Pass | TestStatus::Ok)
+}
+
+fn width_of(values: impl Iterator<Item = u32>) -> usize {
+    values
+        .map(|value| value.to_string().len())
+        .max()
+        .unwrap_or(0)
+}
+
+fn test_status_name(status: TestStatus) -> &'static str {
+    match status {
+        TestStatus::Pass => "PASS",
+        TestStatus::Fail => "FAIL",
+        TestStatus::Ok => "OK",
+        TestStatus::Error => "ERROR",
+        TestStatus::Timeout => "TIMEOUT",
+        TestStatus::Crash => "CRASH",
+        TestStatus::Assert => "ASSERT",
+        TestStatus::PreconditionFailed => "PRECONDITION_FAILED",
+        TestStatus::Skip => "SKIP",
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn counts(pass: u32, total: u32) -> SubtestCounts {
+        SubtestCounts { pass, total }
+    }
+
+    fn changed(
+        test: &str,
+        before: TestStatus,
+        after: TestStatus,
+        b: (u32, u32),
+        a: (u32, u32),
+    ) -> TestDiff {
+        TestDiff::Changed {
+            test: test.to_string(),
+            before,
+            after,
+            counts_before: counts(b.0, b.1),
+            counts_after: counts(a.0, a.1),
+            subtests: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn formats_aligned_rows() {
+        let diffs = vec![
+            TestDiff::Added {
+                test: String::from("/css/added.html"),
+                status: TestStatus::Ok,
+                counts: counts(4, 6),
+            },
+            changed(
+                "/css/changed.html",
+                TestStatus::Fail,
+                TestStatus::Ok,
+                (233, 23423),
+                (477, 23423),
+            ),
+            TestDiff::Removed {
+                test: String::from("/css/removed.html"),
+                status: TestStatus::Fail,
+                counts: counts(2, 3),
+            },
+        ];
+
+        assert_eq!(
+            text_lines(&diffs),
+            vec![
+                "ADD         [  4/    6] (  +4) /css/added.html",
+                "FAIL => OK  [477/23423] (+244) /css/changed.html",
+                "REM         [  2/    3] (  -2) /css/removed.html",
+            ]
+        );
+    }
+
+    #[test]
+    fn summarises_changes() {
+        let diffs = vec![
+            changed(
+                "/css/fixed.html",
+                TestStatus::Fail,
+                TestStatus::Ok,
+                (1, 2),
+                (2, 2),
+            ),
+            changed(
+                "/css/regressed.html",
+                TestStatus::Ok,
+                TestStatus::Timeout,
+                (10, 10),
+                (0, 10),
+            ),
+            changed(
+                "/css/subtests-only.html",
+                TestStatus::Fail,
+                TestStatus::Fail,
+                (3, 10),
+                (9, 10),
+            ),
+            TestDiff::Removed {
+                test: String::from("/css/removed.html"),
+                status: TestStatus::Fail,
+                counts: counts(2, 3),
+            },
+        ];
+
+        assert_eq!(
+            summary_lines(&diffs),
+            vec![
+                "Tests:    1 newly passing, 1 newly failing, 0 added, 1 removed (net +0)",
+                "Subtests: -5 net (+7, -12)",
+            ]
+        );
     }
 }
