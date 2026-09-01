@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use std::time::Instant;
 
 use clap::Parser;
-use wptreport::aggregate::{diff, TestDiff};
+use wptreport::aggregate::{diff, SubtestDetail, TestDiff};
 use wptreport::wpt_report::{TestStatus, WptReport};
 use wptreport::SubtestCounts;
 
@@ -28,7 +28,7 @@ impl Diff {
         let report_str = read_maybe_compressed_file(&self.file_b);
         let report_b: WptReport = serde_json::from_str(&report_str).unwrap();
 
-        let diffs = diff(&mut [report_a, report_b]);
+        let diffs = diff(&mut [report_a, report_b], SubtestDetail::Counts);
 
         for line in text_lines(&diffs) {
             println!("{line}");
