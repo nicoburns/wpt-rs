@@ -1,12 +1,19 @@
 use std::path::PathBuf;
 use std::time::Instant;
 
-use clap::Parser;
+use clap::{Parser, ValueEnum};
 use wptreport::aggregate::{diff, SubtestDetail, SubtestDiff, TestDiff};
 use wptreport::wpt_report::{SubtestStatus, TestStatus, WptReport};
 use wptreport::SubtestCounts;
 
 use crate::compression::read_maybe_compressed_file;
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, ValueEnum)]
+pub enum DiffFormat {
+    #[default]
+    Text,
+    Json,
+}
 
 #[derive(Clone, Debug, Default, Parser)]
 #[clap(name = "diff")]
@@ -16,6 +23,10 @@ pub struct Diff {
 
     /// Read report file from FILE_B
     file_b: PathBuf,
+
+    /// Output format
+    #[clap(long, value_enum, default_value_t = DiffFormat::Text)]
+    format: DiffFormat,
 
     /// List the individual subtests that changed under each test
     #[clap(long, short)]
@@ -41,16 +52,24 @@ impl Diff {
         };
         let diffs = diff(&mut [report_a, report_b], detail);
 
-        for line in text_lines(&diffs, self.verbose) {
-            println!("{line}");
-        }
+        match self.format {
+            DiffFormat::Json => {
+                serde_json::to_writer_pretty(std::io::stdout(), &diffs).unwrap();
+                println!();
+            }
+            DiffFormat::Text => {
+                for line in text_lines(&diffs, self.verbose) {
+                    println!("{line}");
+                }
 
-        let grand_total_time = start.elapsed().as_millis();
-        println!("====================");
-        for line in summary_lines(&diffs) {
-            println!("{line}");
+                let grand_total_time = start.elapsed().as_millis();
+                println!("====================");
+                for line in summary_lines(&diffs) {
+                    println!("{line}");
+                }
+                println!("Done in {grand_total_time}ms");
+            }
         }
-        println!("Done in {grand_total_time}ms");
     }
 }
 
