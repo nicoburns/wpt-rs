@@ -1,0 +1,9 @@
+[package]
+name = "wpt-runner-types"
+description = "Types and parsers for metadata used when running WPT tests (script `// META:` comments, reftest fuzziness, etc)"
+version.workspace = true
+repository.workspace = true
+license.workspace = true
+edition.workspace = true
+
+[dependencies]

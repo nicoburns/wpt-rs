@@ -6207,6 +6207,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "wpt-runner-types"
+version = "0.0.13"
+
+[[package]]
 name = "wptreport"
 version = "0.0.14"
 dependencies = [
