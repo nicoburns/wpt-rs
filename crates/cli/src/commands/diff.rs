@@ -50,6 +50,9 @@ impl Diff {
         } else {
             SubtestDetail::Counts
         };
+        let crashes = StatusCount::new(&report_a, &report_b, TestStatus::Crash);
+        let timeouts = StatusCount::new(&report_a, &report_b, TestStatus::Timeout);
+
         let diffs = diff(&mut [report_a, report_b], detail);
 
         match self.format {
@@ -64,13 +67,41 @@ impl Diff {
 
                 let grand_total_time = start.elapsed().as_millis();
                 println!("====================");
-                for line in summary_lines(&diffs) {
+                for line in summary_lines(&diffs, crashes, timeouts) {
                     println!("{line}");
                 }
                 println!("Done in {grand_total_time}ms");
             }
         }
     }
+}
+
+/// The number of tests with a given status, before and after
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct StatusCount {
+    before: usize,
+    after: usize,
+}
+
+impl StatusCount {
+    fn new(before: &WptReport, after: &WptReport, status: TestStatus) -> Self {
+        Self {
+            before: count_status(before, status),
+            after: count_status(after, status),
+        }
+    }
+
+    fn delta(&self) -> i64 {
+        self.after as i64 - self.before as i64
+    }
+}
+
+fn count_status(report: &WptReport, status: TestStatus) -> usize {
+    report
+        .results
+        .iter()
+        .filter(|result| result.status == status)
+        .count()
 }
 
 /// The change in the number of passing subtests
@@ -160,7 +191,11 @@ fn subtest_line(subtest: &SubtestDiff) -> String {
     format!("    {status}  {}", escape(subtest.name()))
 }
 
-pub fn summary_lines(diffs: &[TestDiff]) -> Vec<String> {
+pub fn summary_lines(
+    diffs: &[TestDiff],
+    crashes: StatusCount,
+    timeouts: StatusCount,
+) -> Vec<String> {
     let mut added = 0;
     let mut removed = 0;
     let mut subtests_gained: i64 = 0;
@@ -189,6 +224,8 @@ pub fn summary_lines(diffs: &[TestDiff]) -> Vec<String> {
              (net {net_subtests:+})"
         ),
         format!("Tests:    {added} added, {removed} removed"),
+        format!("Crashes:  {} ({:+})", crashes.after, crashes.delta()),
+        format!("Timeouts: {} ({:+})", timeouts.after, timeouts.delta()),
     ]
 }
 
@@ -363,10 +400,22 @@ mod tests {
         ];
 
         assert_eq!(
-            summary_lines(&diffs),
+            summary_lines(
+                &diffs,
+                StatusCount {
+                    before: 3,
+                    after: 5
+                },
+                StatusCount {
+                    before: 12,
+                    after: 9
+                },
+            ),
             vec![
                 "Subtests: 7 newly passing, 12 newly failing (net -5)",
                 "Tests:    0 added, 1 removed",
+                "Crashes:  5 (+2)",
+                "Timeouts: 9 (-3)",
             ]
         );
     }
