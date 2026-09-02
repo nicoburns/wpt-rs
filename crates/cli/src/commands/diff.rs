@@ -146,8 +146,11 @@ pub fn text_lines(diffs: &[TestDiff], verbose: bool) -> Vec<String> {
     let deltas: Vec<i64> = diffs.iter().map(delta).collect();
 
     let status_width = statuses.iter().map(String::len).max().unwrap_or(0);
-    let pass_width = width_of(counts.iter().map(|c| c.pass));
-    let total_width = width_of(counts.iter().map(|c| c.total));
+    let counts_width = counts
+        .iter()
+        .map(|c| format_counts(*c).len())
+        .max()
+        .unwrap_or(0);
     let delta_width = deltas
         .iter()
         .map(|delta| format!("{delta:+}").len())
@@ -157,10 +160,10 @@ pub fn text_lines(diffs: &[TestDiff], verbose: bool) -> Vec<String> {
     let mut lines = Vec::with_capacity(diffs.len());
     for (i, diff) in diffs.iter().enumerate() {
         let status = &statuses[i];
-        let SubtestCounts { pass, total } = counts[i];
+        let counts = format_counts(counts[i]);
         let delta = format!("{:+}", deltas[i]);
         lines.push(format!(
-            "{status:<status_width$}  [{pass:>pass_width$}/{total:>total_width$}]  {delta:>delta_width$}  {}",
+            "{status:<status_width$}  {counts:>counts_width$}  {delta:>delta_width$}  {}",
             diff.test(),
         ));
 
@@ -229,11 +232,9 @@ pub fn summary_lines(
     ]
 }
 
-fn width_of(values: impl Iterator<Item = u32>) -> usize {
-    values
-        .map(|value| value.to_string().len())
-        .max()
-        .unwrap_or(0)
+fn format_counts(counts: SubtestCounts) -> String {
+    let SubtestCounts { pass, total } = counts;
+    format!("[{pass}/{total}]")
 }
 
 /// Escape characters that would break the one-line-per-change output
@@ -321,9 +322,9 @@ mod tests {
         assert_eq!(
             text_lines(&diffs, false),
             vec![
-                "ADD         [  4/    6]    +4  /css/added.html",
+                "ADD               [4/6]    +4  /css/added.html",
                 "FAIL => OK  [477/23423]  +244  /css/changed.html",
-                "REM         [  2/    3]    -2  /css/removed.html",
+                "REM               [2/3]    -2  /css/removed.html",
             ]
         );
     }
