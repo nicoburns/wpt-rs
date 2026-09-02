@@ -129,7 +129,7 @@ pub fn text_lines(diffs: &[TestDiff], verbose: bool) -> Vec<String> {
         let SubtestCounts { pass, total } = counts[i];
         let delta = format!("{:+}", deltas[i]);
         lines.push(format!(
-            "{status:<status_width$}  [{pass:>pass_width$}/{total:>total_width$}] ({delta:>delta_width$}) {}",
+            "{status:<status_width$}  [{pass:>pass_width$}/{total:>total_width$}]  {delta:>delta_width$}  {}",
             diff.test(),
         ));
 
@@ -297,9 +297,9 @@ mod tests {
         assert_eq!(
             text_lines(&diffs, false),
             vec![
-                "ADD         [  4/    6] (  +4) /css/added.html",
-                "FAIL => OK  [477/23423] (+244) /css/changed.html",
-                "REM         [  2/    3] (  -2) /css/removed.html",
+                "ADD         [  4/    6]    +4  /css/added.html",
+                "FAIL => OK  [477/23423]  +244  /css/changed.html",
+                "REM         [  2/    3]    -2  /css/removed.html",
             ]
         );
     }
@@ -332,7 +332,7 @@ mod tests {
         assert_eq!(
             text_lines(&diffs, true),
             vec![
-                "FAIL => FAIL  [4/10] (+1) /css/changed.html",
+                "FAIL => FAIL  [4/10]  +1  /css/changed.html",
                 "    FAIL => PASS  first\\nsubtest",
                 "    ADD          FAIL  second subtest",
                 "    REM          PASS  third subtest",
@@ -340,7 +340,7 @@ mod tests {
         );
         assert_eq!(
             text_lines(&diffs, false),
-            vec!["FAIL => FAIL  [4/10] (+1) /css/changed.html"]
+            vec!["FAIL => FAIL  [4/10]  +1  /css/changed.html"]
         );
     }
 
