@@ -161,8 +161,6 @@ fn subtest_line(subtest: &SubtestDiff) -> String {
 }
 
 pub fn summary_lines(diffs: &[TestDiff]) -> Vec<String> {
-    let mut newly_passing = 0;
-    let mut newly_failing = 0;
     let mut added = 0;
     let mut removed = 0;
     let mut subtests_gained: i64 = 0;
@@ -172,13 +170,7 @@ pub fn summary_lines(diffs: &[TestDiff]) -> Vec<String> {
         match diff {
             TestDiff::Added { .. } => added += 1,
             TestDiff::Removed { .. } => removed += 1,
-            TestDiff::Changed { before, after, .. } => {
-                match (is_passing(*before), is_passing(*after)) {
-                    (false, true) => newly_passing += 1,
-                    (true, false) => newly_failing += 1,
-                    _ => {}
-                }
-            }
+            TestDiff::Changed { .. } => {}
         }
 
         let delta = delta(diff);
@@ -189,20 +181,15 @@ pub fn summary_lines(diffs: &[TestDiff]) -> Vec<String> {
         }
     }
 
-    let net_tests = newly_passing - newly_failing;
     let net_subtests = subtests_gained - subtests_lost;
 
     vec![
         format!(
-            "Tests:    {newly_passing} newly passing, {newly_failing} newly failing, \
-             {added} added, {removed} removed (net {net_tests:+})"
+            "Subtests: {subtests_gained} newly passing, {subtests_lost} newly failing \
+             (net {net_subtests:+})"
         ),
-        format!("Subtests: {net_subtests:+} net (+{subtests_gained}, -{subtests_lost})"),
+        format!("Tests:    {added} added, {removed} removed"),
     ]
-}
-
-fn is_passing(status: TestStatus) -> bool {
-    matches!(status, TestStatus::Pass | TestStatus::Ok)
 }
 
 fn width_of(values: impl Iterator<Item = u32>) -> usize {
@@ -378,8 +365,8 @@ mod tests {
         assert_eq!(
             summary_lines(&diffs),
             vec![
-                "Tests:    1 newly passing, 1 newly failing, 0 added, 1 removed (net +0)",
-                "Subtests: -5 net (+7, -12)",
+                "Subtests: 7 newly passing, 12 newly failing (net -5)",
+                "Tests:    0 added, 1 removed",
             ]
         );
     }
