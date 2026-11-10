@@ -11,7 +11,7 @@ resolver = "2"
 version = "0.1.1"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/nicoburns/wpt-rs"
-rust-version = "1.81"
+rust-version = "1.88"
 edition = "2021"
 
 [workspace.dependencies]
