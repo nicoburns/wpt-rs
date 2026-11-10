@@ -9,7 +9,7 @@ use serde_json::{json, Map, Value};
 use crate::markup::{self, Root, Tag};
 use crate::script_meta::read_script_metadata;
 use crate::test262::{self, TestRecord};
-use crate::urls::{parse_qs_values, urljoin, urlparse};
+use crate::urls::{query_values, urljoin};
 use crate::ItemType;
 
 /// html5lib's `spaceCharacters`.
@@ -614,8 +614,7 @@ impl<'a> SourceFile<'a> {
                 .find_map(|e| e.attr("src"))
                 .map(str::to_string);
         }
-        let query = urlparse(&include?, "").query;
-        let features = parse_qs_values(&query, "feature");
+        let features = query_values(&include?, "feature");
         (!features.is_empty()).then_some(features)
     }
 
