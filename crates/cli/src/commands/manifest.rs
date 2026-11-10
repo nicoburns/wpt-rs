@@ -44,7 +44,7 @@ impl Manifest {
         let path = args
             .path
             .unwrap_or_else(|| args.tests_root.join("MANIFEST.json"));
-        match wptmanifest::Manifest::load_and_update(
+        match wpt_manifest::Manifest::load_and_update(
             &args.tests_root,
             &path,
             &args.url_base,

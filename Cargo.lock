@@ -6393,14 +6393,14 @@ dependencies = [
  "serde-jsonlines",
  "serde_json",
  "tikv-jemallocator",
- "wptmanifest",
+ "wpt_manifest",
  "wptreport",
  "xz2",
  "zstd",
 ]
 
 [[package]]
-name = "wptmanifest"
+name = "wpt_manifest"
 version = "0.1.1"
 dependencies = [
  "encoding_rs",

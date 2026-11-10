@@ -1,5 +1,5 @@
 [package]
-name = "wptmanifest"
+name = "wpt_manifest"
 description = "Generate the web-platform-tests MANIFEST.json"
 version.workspace = true
 repository.workspace = true
