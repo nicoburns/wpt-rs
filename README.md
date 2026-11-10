@@ -1,12 +1,12 @@
 # WPT-RS
 
-[![Crates.io](https://img.shields.io/crates/v/wptreport.svg)](https://crates.io/crates/wptreport)
-[![Docs](https://docs.rs/wptreport/badge.svg)](https://docs.rs/wptreport)
-![Crates.io License](https://img.shields.io/crates/l/wptreport)
+[![Crates.io](https://img.shields.io/crates/v/wpt_report.svg)](https://crates.io/crates/wpt_report)
+[![Docs](https://docs.rs/wpt_report/badge.svg)](https://docs.rs/wpt_report)
+![Crates.io License](https://img.shields.io/crates/l/wpt_report)
 
 Tools for working with Web Platform Tests (WPT tests) in Rust.
 
 Currently there is:
 
-- The `wptreport` library which allows to parse, generate and manipulate reports in the "WPT report" JSON format.
-- The `wpt` CLI which exposes many of the functions in `wptreport` as a bianry tool
+- The `wpt_report` library which allows to parse, generate and manipulate reports in the "WPT report" JSON format.
+- The `wpt` CLI which exposes many of the functions in `wpt_report` as a bianry tool

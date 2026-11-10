@@ -1,5 +1,5 @@
 [package]
-name = "wptreport"
+name = "wpt_report"
 description = "Tools for working with WPT reports"
 version.workspace = true
 repository.workspace = true

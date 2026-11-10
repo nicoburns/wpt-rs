@@ -2,9 +2,9 @@ use std::path::PathBuf;
 use std::time::Instant;
 
 use clap::{Parser, ValueEnum};
-use wptreport::aggregate::{diff, SubtestDetail, SubtestDiff, TestDiff};
-use wptreport::wpt_report::{SubtestStatus, TestStatus, WptReport};
-use wptreport::SubtestCounts;
+use wpt_report::aggregate::{diff, SubtestDetail, SubtestDiff, TestDiff};
+use wpt_report::wpt_report::{SubtestStatus, TestStatus, WptReport};
+use wpt_report::SubtestCounts;
 
 use crate::compression::read_maybe_compressed_file;
 

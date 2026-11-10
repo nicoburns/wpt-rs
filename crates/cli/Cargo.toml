@@ -14,7 +14,7 @@ xz2 = ["dep:xz2"]
 
 [dependencies]
 # Workspace dependecies
-wptreport = { workspace = true }
+wpt_report = { workspace = true }
 
 # 3rd-party dependencies
 rayon = { workspace = true }

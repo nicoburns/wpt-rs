@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use smol_str::SmolStr;
 use std::{collections::BTreeMap, fmt::Write};
-use wptreport::{TestResultIter, SubtestCounts, AreaScores, score_wpt_report};
+use wpt_report::{TestResultIter, SubtestCounts, AreaScores, score_wpt_report};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RunMetadata {
