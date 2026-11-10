@@ -11,7 +11,7 @@ dioxus = { workspace = true, features = ["router"] }
 reqwest = { workspace = true, features = ["json"] }
 serde = { workspace = true, features = ["derive"] }
 smol_str = { version = "0.3", features = ["serde"] }
-wptreport = { workspace = true }
+wpt_report = { workspace = true }
 
 [features]
 default = ["desktop"]
