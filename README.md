@@ -9,4 +9,5 @@ Tools for working with Web Platform Tests (WPT tests) in Rust.
 Currently there is:
 
 - The `wptreport` library which allows to parse, generate and manipulate reports in the "WPT report" JSON format.
+- The `wptmanifest` library, a port of WPT's `MANIFEST.json` generator (BSD-3-Clause, like upstream WPT). `wpt manifest --tests-root <wpt checkout>` writes a manifest identical to `./wpt manifest`, and only reparses files whose hash changed.
 - The `wpt` CLI which exposes many of the functions in `wptreport` as a bianry tool

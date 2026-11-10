@@ -37,6 +37,10 @@ pub(crate) enum Commands {
     /// Diff two WPT reports
     #[clap(name = "diff")]
     Diff(commands::Diff),
+
+    /// Generate or update a WPT MANIFEST.json
+    #[clap(name = "manifest")]
+    Manifest(commands::Manifest),
 }
 
 fn main() {
@@ -46,5 +50,6 @@ fn main() {
         Commands::Merge(cmd) => cmd.run(),
         Commands::Convert(cmd) => cmd.run(),
         Commands::Diff(cmd) => cmd.run(),
+        Commands::Manifest(cmd) => cmd.run(),
     };
 }

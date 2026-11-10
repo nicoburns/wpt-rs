@@ -2,6 +2,7 @@
 members = [
   "crates/cli",
   "crates/wptreport",
+  "crates/wptmanifest",
   "crates/wptv",
 ]
 resolver = "2"
@@ -15,6 +16,7 @@ edition = "2021"
 
 [workspace.dependencies]
 wptreport = { path = "./crates/wptreport", version = "0.1.1" }
+wptmanifest = { path = "./crates/wptmanifest", version = "0.1.1" }
 rayon = "1.10.0"
 serde = "1"
 serde_json = "1"
