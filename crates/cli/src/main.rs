@@ -38,7 +38,7 @@ pub(crate) enum Commands {
     #[clap(name = "diff")]
     Diff(commands::Diff),
 
-    /// Generate or update a WPT MANIFEST.json
+    /// Generate a WPT MANIFEST.json
     #[clap(name = "manifest")]
     Manifest(commands::Manifest),
 }

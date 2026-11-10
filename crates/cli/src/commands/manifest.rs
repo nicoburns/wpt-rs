@@ -12,15 +12,12 @@ pub struct Manifest {
 
 #[derive(Clone, Debug, Subcommand)]
 enum ManifestCommand {
-    /// Build a MANIFEST.json from scratch, ignoring any existing manifest
-    Build(ManifestArgs),
-
-    /// Update an existing MANIFEST.json, reparsing only changed files (builds one if missing)
-    Update(ManifestArgs),
+    /// Build a MANIFEST.json for the whole tree
+    Build(BuildArgs),
 }
 
 #[derive(Clone, Debug, Args)]
-struct ManifestArgs {
+struct BuildArgs {
     /// Root of the web-platform-tests checkout
     #[clap(long, default_value = ".")]
     tests_root: PathBuf,
@@ -36,26 +33,18 @@ struct ManifestArgs {
 
 impl Manifest {
     pub fn run(self) {
-        let (args, rebuild) = match self.action {
-            ManifestCommand::Build(args) => (args, true),
-            ManifestCommand::Update(args) => (args, false),
-        };
+        let ManifestCommand::Build(args) = self.action;
         let start = Instant::now();
         let path = args
             .path
             .unwrap_or_else(|| args.tests_root.join("MANIFEST.json"));
-        match wpt_manifest::Manifest::load_and_update(
-            &args.tests_root,
-            &path,
-            &args.url_base,
-            rebuild,
-        ) {
-            Ok((_, stats)) => println!(
-                "{}: {} files, {} parsed, {} removed in {}ms",
+        let result = wpt_manifest::Manifest::build(&args.tests_root, args.url_base)
+            .and_then(|manifest| manifest.write(&path).map(|()| manifest));
+        match result {
+            Ok(manifest) => println!(
+                "Wrote {} ({} files) in {}ms",
                 path.display(),
-                stats.files,
-                stats.parsed,
-                stats.removed,
+                manifest.files().count(),
                 start.elapsed().as_millis()
             ),
             Err(e) => {

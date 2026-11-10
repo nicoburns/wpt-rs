@@ -1,5 +1,5 @@
 //! Port of `tools/manifest/manifest.py`, `typedata.py` and `vcs.py`: the manifest data
-//! model, its JSON form, and incremental updates from the filesystem.
+//! model, its JSON form, and building it from the filesystem.
 
 use std::collections::BTreeMap;
 use std::fmt;
@@ -50,23 +50,6 @@ struct FileEntry {
     item_type: ItemType,
     hash: String,
     items: Vec<Value>,
-}
-
-/// Counts from [`Manifest::update`].
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-pub struct UpdateStats {
-    /// Files found in the tree.
-    pub files: usize,
-    /// Files that were (re)parsed because they are new or their hash changed.
-    pub parsed: usize,
-    /// Files in the previous manifest that no longer exist.
-    pub removed: usize,
-}
-
-impl UpdateStats {
-    pub fn changed(&self) -> bool {
-        self.parsed > 0 || self.removed > 0
-    }
 }
 
 /// An in-memory `MANIFEST.json`, keyed by the `/`-separated path of each file.
@@ -211,11 +194,11 @@ impl Manifest {
         fs::rename(&tmp, path).map_err(io_err)
     }
 
-    /// Port of `Manifest.update` over the whole tree rooted at `tests_root`: adds new
-    /// files, reparses files whose hash changed and drops files that no longer exist.
-    pub fn update(&mut self, tests_root: &Path) -> Result<UpdateStats, Error> {
-        let paths = list_files(tests_root)?;
-        let results: Vec<Result<(String, Option<FileEntry>), Error>> = paths
+    /// Builds the manifest for the whole tree rooted at `tests_root`, like
+    /// `./wpt manifest --rebuild`.
+    pub fn build(tests_root: &Path, url_base: impl Into<String>) -> Result<Self, Error> {
+        let url_base = url_base.into();
+        let files = list_files(tests_root)?
             .into_par_iter()
             .map(|(rel_path, is_symlink)| {
                 let full = tests_root.join(&rel_path);
@@ -227,72 +210,19 @@ impl Manifest {
                 } else {
                     git_blob_hash(&contents)
                 };
-                if self.files.get(&rel_path).is_some_and(|e| e.hash == hash) {
-                    return Ok((rel_path, None));
-                }
-                let source = SourceFile::new(&self.url_base, &rel_path, &contents);
+                let source = SourceFile::new(&url_base, &rel_path, &contents);
                 let (item_type, items) = source.manifest_items().map_err(Error::Manifest)?;
                 Ok((
                     rel_path,
-                    Some(FileEntry {
+                    FileEntry {
                         item_type,
                         hash,
                         items,
-                    }),
+                    },
                 ))
             })
-            .collect();
-
-        let mut stats = UpdateStats::default();
-        let mut files = BTreeMap::new();
-        for result in results {
-            let (path, entry) = result?;
-            stats.files += 1;
-            let entry = match entry {
-                Some(entry) => {
-                    stats.parsed += 1;
-                    entry
-                }
-                None => self
-                    .files
-                    .remove(&path)
-                    .expect("unchanged file is in the manifest"),
-            };
-            files.insert(path, entry);
-        }
-        stats.removed = self
-            .files
-            .keys()
-            .filter(|p| !files.contains_key(*p))
-            .count();
-        self.files = files;
-        Ok(stats)
-    }
-
-    /// Loads the manifest at `manifest_path` (unless `rebuild` is set or it is missing or
-    /// incompatible), updates it from `tests_root`, and writes it back if anything changed.
-    pub fn load_and_update(
-        tests_root: &Path,
-        manifest_path: &Path,
-        url_base: &str,
-        rebuild: bool,
-    ) -> Result<(Manifest, UpdateStats), Error> {
-        let existing = if rebuild || !manifest_path.exists() {
-            None
-        } else {
-            match Manifest::load(manifest_path) {
-                Ok(m) if m.url_base == url_base => Some(m),
-                Ok(_) | Err(Error::Incompatible(_)) | Err(Error::Json(_)) => None,
-                Err(e) => return Err(e),
-            }
-        };
-        let had_existing = existing.is_some();
-        let mut manifest = existing.unwrap_or_else(|| Manifest::new(url_base));
-        let stats = manifest.update(tests_root)?;
-        if stats.changed() || !had_existing {
-            manifest.write(manifest_path)?;
-        }
-        Ok((manifest, stats))
+            .collect::<Result<BTreeMap<_, _>, Error>>()?;
+        Ok(Manifest { url_base, files })
     }
 }
 

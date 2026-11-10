@@ -1,9 +1,8 @@
 //! A Rust port of the `MANIFEST.json` generator in web-platform-tests' `tools/manifest`.
 //!
-//! [`Manifest::update`] walks a WPT checkout, classifies each file the same way as
+//! [`Manifest::build`] walks a WPT checkout, classifies each file the same way as
 //! `sourcefile.py`, and produces a manifest that serializes byte-for-byte like
-//! `wpt manifest`. Files whose git blob hash is unchanged from a previously loaded
-//! manifest are not reparsed.
+//! `wpt manifest --rebuild`.
 
 mod encoding;
 mod manifest;
@@ -13,7 +12,7 @@ mod sourcefile;
 mod test262;
 mod urls;
 
-pub use manifest::{Error, Manifest, UpdateStats, CURRENT_VERSION};
+pub use manifest::{Error, Manifest, CURRENT_VERSION};
 
 use std::fmt;
 use std::str::FromStr;
