@@ -6394,7 +6394,7 @@ dependencies = [
  "serde_json",
  "tikv-jemallocator",
  "wpt_manifest",
- "wptreport",
+ "wpt_report",
  "xz2",
  "zstd",
 ]
@@ -6416,7 +6416,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "wptreport"
+name = "wpt_report"
 version = "0.1.1"
 dependencies = [
  "indexmap",
@@ -6433,7 +6433,7 @@ dependencies = [
  "reqwest 0.13.2",
  "serde",
  "smol_str",
- "wptreport",
+ "wpt_report",
 ]
 
 [[package]]

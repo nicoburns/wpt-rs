@@ -1,7 +1,7 @@
 [workspace]
 members = [
   "crates/cli",
-  "crates/wptreport",
+  "crates/wpt_report",
   "crates/wpt_manifest",
   "crates/wptv",
 ]
@@ -15,7 +15,7 @@ rust-version = "1.88"
 edition = "2021"
 
 [workspace.dependencies]
-wptreport = { path = "./crates/wptreport", version = "0.1.1" }
+wpt_report = { path = "./crates/wpt_report", version = "0.1.1" }
 wpt_manifest = { path = "./crates/wpt_manifest", version = "0.1.1" }
 rayon = "1.10.0"
 serde = "1"

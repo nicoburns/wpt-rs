@@ -3,8 +3,8 @@ use std::path::PathBuf;
 use std::time::Instant;
 
 use clap::Parser;
-use wptreport::servo_test_scores::WptScores;
-use wptreport::wpt_report::WptReport;
+use wpt_report::servo_test_scores::WptScores;
+use wpt_report::wpt_report::WptReport;
 
 use crate::compression::read_maybe_compressed_file;
 

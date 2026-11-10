@@ -9,11 +9,11 @@ use clap::Parser;
 use rayon::iter::{IntoParallelRefIterator as _, ParallelIterator as _};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
-use wptreport::reports::servo_test_scores::WptScores;
-use wptreport::score_summary::FocusArea;
-use wptreport::summarize::{summarize_results, RunInfoWithScores};
-use wptreport::wpt_report::{WptReport, WptRunInfo};
-use wptreport::{score_wpt_report, AreaScores, HasRunInfo, ScorableReport};
+use wpt_report::reports::servo_test_scores::WptScores;
+use wpt_report::score_summary::FocusArea;
+use wpt_report::summarize::{summarize_results, RunInfoWithScores};
+use wpt_report::wpt_report::{WptReport, WptRunInfo};
+use wpt_report::{score_wpt_report, AreaScores, HasRunInfo, ScorableReport};
 
 use crate::compression::read_maybe_compressed_file;
 

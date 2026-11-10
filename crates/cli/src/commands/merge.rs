@@ -4,8 +4,8 @@ use std::path::PathBuf;
 use std::time::Instant;
 
 use clap::Parser;
-use wptreport::merge::WptReportMerger;
-use wptreport::wpt_report::WptReport;
+use wpt_report::merge::WptReportMerger;
+use wpt_report::wpt_report::WptReport;
 
 use crate::compression::read_maybe_compressed_file;
 
