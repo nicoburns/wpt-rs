@@ -1,0 +1,62 @@
+name: Release
+
+permissions:
+  contents: read
+
+on:
+  push:
+    tags:
+      - v[0-9]+.*
+  pull_request:
+    paths:
+      - .github/workflows/release.yml
+
+jobs:
+  create-release:
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: taiki-e/create-gh-release-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  # Builds the `wpt` CLI and uploads archives named so that `cargo binstall wpt` can find them
+  # (see `[package.metadata.binstall]` in crates/cli/Cargo.toml). On pull requests this only
+  # builds and packages the binaries (dry run) without uploading anything.
+  upload-assets:
+    needs: create-release
+    if: ${{ !cancelled() && (needs.create-release.result == 'success' || needs.create-release.result == 'skipped') }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-22.04
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-22.04-arm
+          - target: x86_64-apple-darwin
+            os: macos-latest
+          - target: aarch64-apple-darwin
+            os: macos-latest
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+          - target: aarch64-pc-windows-msvc
+            os: windows-11-arm
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: taiki-e/upload-rust-binary-action@v1
+        with:
+          bin: wpt
+          manifest-path: crates/cli/Cargo.toml
+          target: ${{ matrix.target }}
+          archive: $bin-$target-$tag
+          locked: true
+          checksum: sha256
+          dry-run: ${{ !startsWith(github.ref, 'refs/tags/') }}
+          token: ${{ secrets.GITHUB_TOKEN }}

@@ -11,3 +11,17 @@ Currently there is:
 - The `wpt_report` library which allows to parse, generate and manipulate reports in the "WPT report" JSON format.
 - The `wpt_manifest` library, a port of WPT's `MANIFEST.json` generator (BSD-3-Clause, like upstream WPT). `wpt manifest build --tests-root <wpt checkout>` writes a manifest identical to `./wpt manifest --rebuild`.
 - The `wpt` CLI which exposes many of the functions in `wpt_report` as a bianry tool
+
+## Installing the `wpt` CLI
+
+Prebuilt binaries are attached to each [GitHub release](https://github.com/nicoburns/wpt-rs/releases) and can be installed with [cargo-binstall](https://github.com/cargo-bins/cargo-binstall):
+
+```sh
+cargo binstall wpt
+```
+
+Or build from source with `cargo install wpt`.
+
+## Releasing
+
+Publish to crates.io, then push a `v<version>` tag matching the workspace version (e.g. `v0.1.2`). The release workflow creates the GitHub release and uploads `wpt` binaries for Linux (x86_64, aarch64), macOS (x86_64, aarch64) and Windows (x86_64, aarch64).

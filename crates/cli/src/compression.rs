@@ -1,12 +1,11 @@
 use std::fs::{self, File};
 use std::io::Read;
-use std::os::unix::ffi::OsStrExt as _;
 use std::path::Path;
 use xz2::read::XzDecoder;
 
 pub fn read_maybe_compressed_file(file_path: &Path) -> String {
     let file = File::open(file_path).unwrap();
-    let extension = file_path.extension().unwrap().as_bytes();
+    let extension = file_path.extension().unwrap().as_encoded_bytes();
 
     match extension {
         b"xz" => {
