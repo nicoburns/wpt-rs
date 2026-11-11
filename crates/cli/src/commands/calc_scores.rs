@@ -125,8 +125,7 @@ impl CalcScores {
                 .collect();
 
             // Write scores.json file
-            let score_summary =
-                summarize_results(&scores, focus_areas.as_deref());
+            let score_summary = summarize_results(&scores, focus_areas.as_deref());
             let score_summary_str = serde_json::to_string(&score_summary).unwrap();
             fs::write(self.out, score_summary_str).unwrap();
 
