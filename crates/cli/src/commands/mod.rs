@@ -6,3 +6,5 @@ mod convert;
 pub use convert::Convert;
 mod diff;
 pub use diff::Diff;
+mod manifest;
+pub use manifest::Manifest;
