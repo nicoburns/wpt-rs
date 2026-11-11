@@ -15,7 +15,7 @@ pub struct Convert {
     #[arg(long)]
     r#in: PathBuf,
 
-    /// Output merged report to OUT
+    /// Output Servo scores report to OUT
     #[arg(long)]
     out: PathBuf,
 

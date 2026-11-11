@@ -9,7 +9,7 @@ mod compression;
 static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 static VERSION: &str = env!("CARGO_PKG_VERSION");
 
-/// Dioxus: build web, desktop, and mobile apps with a single codebase.
+/// CLI for working with WPT data
 #[derive(Parser)]
 #[clap(name = "wpt", version = VERSION)]
 // #[clap(styles = CARGO_STYLING)]
