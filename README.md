@@ -12,9 +12,17 @@ Currently there is:
 - The `wpt_manifest` library, a port of WPT's `MANIFEST.json` generator (BSD-3-Clause, like upstream WPT). `wpt manifest build --tests-root <wpt checkout>` writes a manifest identical to `./wpt manifest --rebuild`.
 - The [`wpt` CLI](crates/cli/README.md) which exposes many of the functions in `wpt_report` as a binary tool
 
-## The `wpt` CLI
+## Installing the `wpt` CLI
 
-See the [`wpt` CLI README](crates/cli/README.md) for installation and usage.
+Prebuilt binaries are attached to each [GitHub release](https://github.com/nicoburns/wpt-rs/releases) and can be installed with [cargo-binstall](https://github.com/cargo-bins/cargo-binstall):
+
+```sh
+cargo binstall wpt
+```
+
+Or build from source with `cargo install wpt`.
+
+See the [`wpt` CLI README](crates/cli/README.md) for usage.
 
 ## Releasing
 
