@@ -6,10 +6,10 @@ use std::collections::BTreeMap;
 
 use serde_json::{json, Map, Value};
 
-use crate::markup::{self, Root, Tag};
-use crate::script_meta::read_script_metadata;
-use crate::test262::{self, TestRecord};
-use crate::urls::{query_values, urljoin};
+use crate::parsers::markup::{self, Root, Tag};
+use crate::parsers::script_meta::read_script_metadata;
+use crate::parsers::test262_frontmatter::{self, TestRecord};
+use crate::parsers::urls::{query_values, urljoin};
 use crate::ItemType;
 
 /// html5lib's `spaceCharacters`.
@@ -339,7 +339,7 @@ impl<'a> SourceFile<'a> {
                 if !self.name_is_test262() {
                     return None;
                 }
-                test262::parse(&String::from_utf8_lossy(self.contents), self.rel_path)
+                test262_frontmatter::parse(&String::from_utf8_lossy(self.contents), self.rel_path)
             })
             .as_ref()
     }

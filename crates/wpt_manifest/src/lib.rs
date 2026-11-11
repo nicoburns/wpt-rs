@@ -6,11 +6,8 @@
 
 mod encoding;
 mod manifest;
-mod markup;
-mod script_meta;
+mod parsers;
 mod sourcefile;
-mod test262;
-mod urls;
 
 pub use manifest::{Error, Manifest, CURRENT_VERSION};
 
