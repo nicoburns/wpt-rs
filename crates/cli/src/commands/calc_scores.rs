@@ -1,6 +1,5 @@
 use std::collections::BTreeMap;
 use std::fs::{self, read_dir};
-use std::os::unix::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Instant;
@@ -88,7 +87,10 @@ impl CalcScores {
                 .flatten()
                 .filter(|entry| entry.metadata().unwrap().is_file())
                 .map(|entry| entry.path())
-                .filter(|path| path.file_name().is_some_and(|p| p.as_bytes()[0] != b'.'))
+                .filter(|path| {
+                    path.file_name()
+                        .is_some_and(|p| p.as_encoded_bytes()[0] != b'.')
+                })
                 .collect();
             file_paths.sort();
 
