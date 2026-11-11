@@ -6385,7 +6385,7 @@ dependencies = [
 
 [[package]]
 name = "wpt"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "clap",
  "rayon",
@@ -6401,7 +6401,7 @@ dependencies = [
 
 [[package]]
 name = "wpt_manifest"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "encoding_rs",
  "html5ever 0.40.1",
@@ -6417,7 +6417,7 @@ dependencies = [
 
 [[package]]
 name = "wpt_report"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "indexmap",
  "rayon",
