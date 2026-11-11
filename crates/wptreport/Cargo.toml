@@ -1,7 +1,8 @@
 [package]
 name = "wptreport"
-description = "Tools for working with WPT reports"
-version.workspace = true
+description = "Renamed to `wpt_report`. Please use https://crates.io/crates/wpt_report instead."
+version = "0.1.2"
+readme = "README.md"
 repository.workspace = true
 license.workspace = true
 edition.workspace = true
