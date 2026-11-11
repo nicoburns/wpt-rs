@@ -5,10 +5,12 @@
 //! `wpt manifest --rebuild`.
 
 mod encoding;
+mod fuzzy;
 mod manifest;
 mod parsers;
 mod sourcefile;
 
+pub use fuzzy::{tolerance_for_reference, FuzzyRange, FuzzySpec, FuzzyTolerance};
 pub use manifest::{Error, Manifest, CURRENT_VERSION};
 
 use std::fmt;
