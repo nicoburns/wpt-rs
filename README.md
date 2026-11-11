@@ -23,4 +23,4 @@ Or build from source with `cargo install wpt`.
 
 ## Releasing
 
-Publish to crates.io, then push a `v<version>` tag matching the workspace version (e.g. `v0.1.2`). The release workflow creates the GitHub release and uploads `wpt` binaries for Linux (x86_64, aarch64), macOS (x86_64, aarch64) and Windows (x86_64).
+Publish to crates.io, then push a `v<version>` tag matching the workspace version (e.g. `v0.1.2`). The release workflow creates the GitHub release and uploads `wpt` binaries for Linux (x86_64, aarch64), macOS (x86_64, aarch64) and Windows (x86_64, aarch64).
