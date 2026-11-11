@@ -60,7 +60,7 @@ impl Add for AreaScores {
 impl AreaScores {
     /// The WPT score percentage using the "interop" scoring methodology
     /// The value is represented as a number between 0 and 1000
-    /// See: https://github.com/web-platform-tests/results-analysis/blob/0357bcf8973a6de5f544e1f82e50e7322805e214/interop-scoring/main.js#L250
+    /// See: <https://github.com/web-platform-tests/results-analysis/blob/0357bcf8973a6de5f544e1f82e50e7322805e214/interop-scoring/main.js#L250>
     pub fn interop_score(&self) -> u16 {
         (self.interop_score_sum as f64 / self.tests.total as f64).floor() as u16
     }
