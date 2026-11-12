@@ -48,7 +48,8 @@ jobs:
 
       - name: Record WPT revision
         working-directory: wpt
-        run: echo "WPT master: $(git rev-parse HEAD)" | tee -a "$GITHUB_STEP_SUMMARY"
+        run: |
+          echo "WPT master: $(git rev-parse HEAD)" | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Build manifest (Python)
         working-directory: wpt
