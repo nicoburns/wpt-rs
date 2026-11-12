@@ -1,0 +1,80 @@
+name: Manifest parity
+
+# Rebuilds MANIFEST.json for the latest WPT master with both the upstream Python
+# generator (`./wpt manifest --rebuild`) and `wpt manifest build`, and fails if
+# the two files are not byte-identical.
+
+permissions:
+  contents: read
+
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/manifest-parity.yml
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  parity:
+    name: Python vs Rust MANIFEST.json
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Checkout WPT master
+        uses: actions/checkout@v4
+        with:
+          repository: web-platform-tests/wpt
+          ref: master
+          path: wpt
+          fetch-depth: 1
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build --release --locked -p wpt
+
+      - name: Record WPT revision
+        working-directory: wpt
+        run: |
+          echo "WPT master: $(git rev-parse HEAD)" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Build manifest (Python)
+        working-directory: wpt
+        run: ./wpt manifest --rebuild -p "$RUNNER_TEMP/MANIFEST.python.json"
+
+      - name: Build manifest (Rust)
+        run: |
+          rm -f wpt/MANIFEST.json
+          target/release/wpt manifest build --tests-root wpt -p "$RUNNER_TEMP/MANIFEST.rust.json"
+
+      - name: Compare manifests
+        run: |
+          if cmp -s "$RUNNER_TEMP/MANIFEST.python.json" "$RUNNER_TEMP/MANIFEST.rust.json"; then
+            echo "Manifests are identical." | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          echo "::error::MANIFEST.json from wpt-rs differs from the Python generator"
+          python3 .github/scripts/diff_manifests.py "$RUNNER_TEMP/MANIFEST.python.json" "$RUNNER_TEMP/MANIFEST.rust.json" | tee -a "$GITHUB_STEP_SUMMARY"
+          exit 1
+
+      - name: Upload manifests
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: manifests
+          path: |
+            ${{ runner.temp }}/MANIFEST.python.json
+            ${{ runner.temp }}/MANIFEST.rust.json
