@@ -32,6 +32,20 @@ impl Response {
             .map(|(_, value)| value.as_str())
     }
 
+    /// Whether the response has an XML `Content-Type`. `None` if it has no
+    /// `Content-Type` header, in which case wptserve picks the content type from
+    /// the file extension.
+    pub fn is_xml(&self) -> Option<bool> {
+        let mime = self
+            .header("Content-Type")?
+            .split(';')
+            .next()
+            .unwrap_or_default()
+            .trim()
+            .to_ascii_lowercase();
+        Some(mime.ends_with("+xml") || mime == "application/xml" || mime == "text/xml")
+    }
+
     /// The text of the response, decoded using the charset from its
     /// `Content-Type` header (with BOM sniffing) if it has one, else as UTF-8.
     /// Returns `None` for a response without a charset which isn't valid UTF-8.
@@ -59,29 +73,6 @@ pub fn serve(wpt_dir: &Path, relative_path: &str, request_url: &Url) -> std::io:
     Ok(Response { body, headers })
 }
 
-/// Whether wptserve would serve `relative_path` (a WPT-root-relative path,
-/// optionally with a query) with an XML content type. `None` if its `.headers`
-/// don't set a `Content-Type`, in which case the file extension decides.
-pub fn headers_say_xml(wpt_dir: &Path, relative_path: &str, request_url: &Url) -> Option<bool> {
-    let path = relative_path
-        .split(['?', '#'])
-        .next()
-        .unwrap_or(relative_path);
-    let headers = load_headers(wpt_dir, path, request_url);
-    let content_type = headers
-        .iter()
-        .rev()
-        .find(|(key, _)| key.eq_ignore_ascii_case("Content-Type"))?;
-    let mime = content_type
-        .1
-        .split(';')
-        .next()
-        .unwrap_or_default()
-        .trim()
-        .to_ascii_lowercase();
-    Some(mime.ends_with("+xml") || mime == "application/xml" || mime == "text/xml")
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -105,12 +96,13 @@ mod tests {
         let response = serve(dir.path(), "css/a.xht", &url).unwrap();
         assert_eq!(response.header("x-dir"), Some("1"));
         assert_eq!(response.header("X-Host"), Some(BROWSER_HOST));
+        assert_eq!(response.is_xml(), Some(true));
         assert_eq!(response.text().as_deref(), Some("café"));
-        assert_eq!(headers_say_xml(dir.path(), "css/a.xht?x", &url), Some(true));
 
         let url = Url::parse(ORIGIN).unwrap().join("css/b.html").unwrap();
-        assert_eq!(serve(dir.path(), "css/b.html", &url).unwrap().text(), None);
-        assert_eq!(headers_say_xml(dir.path(), "css/b.html", &url), None);
+        let response = serve(dir.path(), "css/b.html", &url).unwrap();
+        assert_eq!(response.is_xml(), None);
+        assert_eq!(response.text(), None);
 
         let url = Url::parse(ORIGIN)
             .unwrap()
