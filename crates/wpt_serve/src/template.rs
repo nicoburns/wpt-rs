@@ -21,33 +21,6 @@ pub enum Escape {
     None,
 }
 
-/// The escaping to substitute with if the response needs the `sub` pipe:
-/// `.sub.` files (HTML-escaped for markup files) and `?pipe=sub` queries.
-pub(crate) fn sub_escape(relative_path: &str, request_url: &Url) -> Option<Escape> {
-    if relative_path.contains(".sub.") {
-        let file_name = relative_path.rsplit('/').next().unwrap_or(relative_path);
-        let extension = file_name.rsplit_once('.').map(|(_, ext)| ext);
-        let is_markup = extension
-            .is_some_and(|ext| ["html", "htm", "xht", "xhtml", "xml", "svg"].contains(&ext));
-        return Some(if is_markup {
-            Escape::Html
-        } else {
-            Escape::None
-        });
-    }
-    // Only the `sub` pipe is supported from `?pipe=`
-    let pipe = request_url
-        .query_pairs()
-        .filter(|(key, _)| key == "pipe")
-        .last()?
-        .1;
-    pipe.split('|').find_map(|pipe| match pipe.trim() {
-        "sub" | "sub(html)" => Some(Escape::Html),
-        "sub(none)" => Some(Escape::None),
-        _ => None,
-    })
-}
-
 /// Apply wptserve's `sub` pipe to `content`, the file at `relative_path`
 /// (relative to the WPT root) served for a request to `request_url`.
 /// Expressions which can't be evaluated are left in place, with a warning.
@@ -277,7 +250,6 @@ impl TemplateCtx<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ORIGIN;
 
     fn sub(content: &str, request_url: &str, escape: Escape) -> String {
         let url = Url::parse(request_url).unwrap();
@@ -389,17 +361,5 @@ mod tests {
             ),
             "{{nope}} {{ports[ftp][0]}} {{ports[http][x]}} {{}} {{uuid}}"
         );
-    }
-
-    #[test]
-    fn sub_pipe_selection() {
-        let url = Url::parse(ORIGIN).unwrap();
-        assert_eq!(sub_escape("a/b.sub.html", &url), Some(Escape::Html));
-        assert_eq!(sub_escape("a/b.sub.css", &url), Some(Escape::None));
-        assert_eq!(sub_escape("a.sub/b.html", &url), None);
-        let piped = url.join("a/b.js?pipe=header(X,y)|sub").unwrap();
-        assert_eq!(sub_escape("a/b.js", &piped), Some(Escape::Html));
-        let piped = url.join("a/b.js?pipe=trickle(d1)").unwrap();
-        assert_eq!(sub_escape("a/b.js", &piped), None);
     }
 }

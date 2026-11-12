@@ -61,13 +61,40 @@ impl Response {
     }
 }
 
+/// The escaping to substitute with if the response needs the `sub` pipe:
+/// `.sub.` files (HTML-escaped for markup files) and `?pipe=sub` queries.
+fn sub_escape(relative_path: &str, request_url: &Url) -> Option<Escape> {
+    if relative_path.contains(".sub.") {
+        let file_name = relative_path.rsplit('/').next().unwrap_or(relative_path);
+        let extension = file_name.rsplit_once('.').map(|(_, ext)| ext);
+        let is_markup = extension
+            .is_some_and(|ext| ["html", "htm", "xht", "xhtml", "xml", "svg"].contains(&ext));
+        return Some(if is_markup {
+            Escape::Html
+        } else {
+            Escape::None
+        });
+    }
+    // Only the `sub` pipe is supported from `?pipe=`
+    let pipe = request_url
+        .query_pairs()
+        .filter(|(key, _)| key == "pipe")
+        .last()?
+        .1;
+    pipe.split('|').find_map(|pipe| match pipe.trim() {
+        "sub" | "sub(html)" => Some(Escape::Html),
+        "sub(none)" => Some(Escape::None),
+        _ => None,
+    })
+}
+
 /// Serve the file at `relative_path` (relative to the WPT root, no query) for a
 /// request to `request_url`, applying the file's `.headers` and `.sub.`
 /// substitution (or a `?pipe=sub` query) like wptserve.
 pub fn serve(wpt_dir: &Path, relative_path: &str, request_url: &Url) -> std::io::Result<Response> {
     let mut body = std::fs::read(wpt_dir.join(relative_path))?;
     let headers = load_headers(wpt_dir, relative_path, request_url);
-    if let Some(escape) = template::sub_escape(relative_path, request_url) {
+    if let Some(escape) = sub_escape(relative_path, request_url) {
         body = template(wpt_dir, relative_path, request_url, &body, escape);
     }
     Ok(Response { body, headers })
@@ -113,5 +140,17 @@ mod tests {
             response.text().as_deref(),
             Some("<p title='&lt;&#x27;&gt;'>web-platform.test")
         );
+    }
+
+    #[test]
+    fn sub_pipe_selection() {
+        let url = Url::parse(ORIGIN).unwrap();
+        assert_eq!(sub_escape("a/b.sub.html", &url), Some(Escape::Html));
+        assert_eq!(sub_escape("a/b.sub.css", &url), Some(Escape::None));
+        assert_eq!(sub_escape("a.sub/b.html", &url), None);
+        let piped = url.join("a/b.js?pipe=header(X,y)|sub").unwrap();
+        assert_eq!(sub_escape("a/b.js", &piped), Some(Escape::Html));
+        let piped = url.join("a/b.js?pipe=trickle(d1)").unwrap();
+        assert_eq!(sub_escape("a/b.js", &piped), None);
     }
 }
