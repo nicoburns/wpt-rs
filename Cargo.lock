@@ -6431,6 +6431,7 @@ name = "wpt_serve"
 version = "0.2.0"
 dependencies = [
  "encoding_rs",
+ "flate2",
  "log",
  "tempfile",
  "url",

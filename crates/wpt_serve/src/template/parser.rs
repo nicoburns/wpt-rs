@@ -161,17 +161,22 @@ fn split_arguments(args: &str) -> Vec<String> {
 
 /// An integer if Python's `int()` accepts `key`, else the string
 fn parse_index(key: String) -> Index {
-    let trimmed = key.trim();
+    match python_int(&key) {
+        Some(int) => Index::Int(int),
+        None => Index::Str(key),
+    }
+}
+
+/// The integer Python's `int()` parses `value` as, if any
+pub(crate) fn python_int(value: &str) -> Option<i64> {
+    let trimmed = value.trim();
     let digits = trimmed.strip_prefix(['+', '-']).unwrap_or(trimmed);
     let is_int = !digits.is_empty()
         && !digits.starts_with('_')
         && !digits.ends_with('_')
         && !digits.contains("__")
         && digits.bytes().all(|b| b.is_ascii_digit() || b == b'_');
-    match is_int.then(|| trimmed.replace('_', "").parse()) {
-        Some(Ok(int)) => Index::Int(int),
-        _ => Index::Str(key),
-    }
+    is_int.then(|| trimmed.replace('_', "").parse().ok())?
 }
 
 #[cfg(test)]

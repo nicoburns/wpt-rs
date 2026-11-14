@@ -8,7 +8,7 @@ use url::Url;
 
 use crate::config::{ALT_HOST, BROWSER_HOST, PORTS, SUBDOMAINS};
 
-mod parser;
+pub(crate) mod parser;
 
 use parser::{Index, Piece, Token};
 
