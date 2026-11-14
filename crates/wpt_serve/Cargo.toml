@@ -1,0 +1,18 @@
+[package]
+name = "wpt_serve"
+description = "Emulation of wptserve's static file handling (.headers files and pipes such as .sub. templates)"
+version.workspace = true
+repository.workspace = true
+license = "BSD-3-Clause"
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+encoding_rs = "0.8"
+flate2 = "1"
+log = "0.4"
+url = "2.5"
+uuid = { version = "1", features = ["v4"] }
+
+[dev-dependencies]
+tempfile = "3"

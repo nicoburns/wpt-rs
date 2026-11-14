@@ -3,6 +3,7 @@ members = [
   "crates/cli",
   "crates/wpt_report",
   "crates/wpt_manifest",
+  "crates/wpt_serve",
   "crates/wptv",
 ]
 resolver = "2"
